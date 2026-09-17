@@ -9,256 +9,258 @@ content="Rida International Travel & Tourism Driver and Vehicle Daily Checklist"
 
 <meta name="theme-color" content="#0b4f71">
 
-<title>Driver & Vehicle Checklist | Rida International Travel & Tourism</title>
+<title>
+Driver & Vehicle Checklist | Rida International Travel & Tourism
+</title>
 
 <style>
-:root{
-    --primary:#0b4f71;
-    --secondary:#087f8c;
-    --light:#f4f8fa;
-    --dark:#17313b;
-    --border:#d8e2e7;
-    --danger:#b42318;
-    --success:#087443;
+
+:root {
+    --primary: #0b4f71;
+    --secondary: #087f8c;
+    --dark: #17313b;
+    --border: #d8e2e7;
+    --danger: #b42318;
+    --success: #087443;
 }
 
-*{
-    box-sizing:border-box;
+* {
+    box-sizing: border-box;
 }
 
-body{
-    margin:0;
-    font-family:Arial,Helvetica,sans-serif;
-    background:linear-gradient(135deg,#eef5f7,#ffffff);
-    color:var(--dark);
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #eef5f7, #ffffff);
+    color: var(--dark);
 }
 
-.container{
-    max-width:850px;
-    margin:auto;
-    padding:18px;
+.container {
+    max-width: 850px;
+    margin: auto;
+    padding: 12px;
 }
 
-.card{
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:18px;
-    box-shadow:0 8px 28px rgba(23,49,59,.08);
-    overflow:hidden;
+.card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(23,49,59,.08);
+    overflow: hidden;
 }
 
-.header{
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    color:#fff;
-    padding:25px 22px;
+/* HEADER */
+
+.header {
+    background: linear-gradient(
+        135deg,
+        var(--primary),
+        var(--secondary)
+    );
+    color: white;
+    padding: 25px 20px;
 }
 
-.header h1{
-    margin:0 0 7px;
-    font-size:25px;
+.header h1 {
+    margin: 0 0 7px;
+    font-size: 25px;
 }
 
-.header p{
-    margin:0;
-    opacity:.92;
+.header p {
+    margin: 0;
+    opacity: .92;
 }
 
-.meta{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    padding:18px;
-    background:#f7fafb;
+/* DATE AND TIME */
+
+.meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px;
+    background: #f7fafb;
 }
 
-.meta-box{
-    background:#fff;
-    border:1px solid var(--border);
-    padding:12px;
-    border-radius:10px;
+.meta-box {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 13px;
+    border-radius: 10px;
 }
 
-.label{
-    font-size:12px;
-    color:#657780;
-    text-transform:uppercase;
-    font-weight:bold;
+.label {
+    font-size: 12px;
+    color: #657780;
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
-.value{
-    font-weight:bold;
-    margin-top:5px;
+.value {
+    font-weight: bold;
+    margin-top: 5px;
+    font-size: 16px;
 }
 
-form{
-    padding:20px;
+/* FORM */
+
+form {
+    padding: 20px;
 }
 
-.section{
-    margin-bottom:25px;
+.section {
+    margin-bottom: 25px;
 }
 
-.section-title{
-    font-size:18px;
-    font-weight:800;
-    color:var(--primary);
-    border-bottom:2px solid #e6eef1;
-    padding-bottom:9px;
-    margin-bottom:15px;
+.section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary);
+    border-bottom: 2px solid #e6eef1;
+    padding-bottom: 9px;
+    margin-bottom: 15px;
 }
 
-.field{
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:14px;
-    margin-bottom:12px;
-    background:#fbfdfe;
+.field {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: #fbfdfe;
 }
 
-.question{
-    font-weight:700;
-    margin-bottom:10px;
+.question {
+    font-weight: 700;
+    margin-bottom: 10px;
 }
 
-.options{
-    display:flex;
-    flex-wrap:wrap;
-    gap:9px;
+.options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
 }
 
-.options label{
-    border:1px solid var(--border);
-    border-radius:9px;
-    padding:10px 12px;
-    background:#fff;
-    cursor:pointer;
+.options label {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    background: white;
+    cursor: pointer;
 }
 
-.options input{
-    accent-color:var(--primary);
-    margin-right:6px;
+.options input {
+    accent-color: var(--primary);
+    margin-right: 6px;
 }
 
-input[type=text],
-textarea{
-    width:100%;
-    padding:12px;
-    border:1px solid #cbd8de;
-    border-radius:9px;
-    font:inherit;
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd8de;
+    border-radius: 9px;
+    font: inherit;
 }
 
-textarea{
-    min-height:105px;
-    resize:vertical;
+textarea {
+    min-height: 105px;
+    resize: vertical;
 }
 
-.camera{
-    border:2px dashed #a9c1ca;
-    padding:16px;
-    text-align:center;
-    border-radius:12px;
-    background:#f8fbfc;
+/* SUBMIT */
+
+.submit {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 15px;
+    background: linear-gradient(
+        135deg,
+        var(--primary),
+        var(--secondary)
+    );
+    color: white;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
-.camera input{
-    display:block;
-    margin:12px auto 0;
-    max-width:100%;
+.submit:disabled {
+    opacity: .65;
+    cursor: not-allowed;
 }
 
-.preview{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:12px;
+/* MESSAGES */
+
+.notice {
+    display: none;
+    margin: 15px 0;
+    padding: 13px;
+    border-radius: 10px;
+    font-weight: bold;
 }
 
-.preview img{
-    width:110px;
-    height:90px;
-    object-fit:cover;
-    border-radius:9px;
-    border:1px solid var(--border);
+.success {
+    background: #e8f7ef;
+    color: var(--success);
 }
 
-.submit{
-    width:100%;
-    border:0;
-    border-radius:12px;
-    padding:15px;
-    background:linear-gradient(135deg,var(--primary),var(--secondary));
-    color:#fff;
-    font-size:17px;
-    font-weight:800;
-    cursor:pointer;
+.error {
+    background: #fff0ee;
+    color: var(--danger);
 }
 
-.submit:disabled{
-    opacity:.65;
-    cursor:not-allowed;
+/* FOOTER */
+
+.footer {
+    text-align: center;
+    padding: 15px;
+    color: #71818a;
+    font-size: 12px;
 }
 
-.notice{
-    display:none;
-    margin:15px 0;
-    padding:13px;
-    border-radius:10px;
-    font-weight:bold;
-}
+/* MOBILE */
 
-.success{
-    background:#e8f7ef;
-    color:var(--success);
-}
+@media (max-width: 600px) {
 
-.error{
-    background:#fff0ee;
-    color:var(--danger);
-}
-
-.footer{
-    text-align:center;
-    padding:15px;
-    color:#71818a;
-    font-size:12px;
-}
-
-@media(max-width:600px){
-
-    .container{
-        padding:8px;
+    .container {
+        padding: 8px;
     }
 
-    .meta{
-        grid-template-columns:1fr;
+    .meta {
+        grid-template-columns: 1fr;
     }
 
-    .header h1{
-        font-size:21px;
+    .header h1 {
+        font-size: 21px;
     }
 
-    form{
-        padding:14px;
+    form {
+        padding: 14px;
     }
 
-    .options{
-        display:grid;
-        grid-template-columns:1fr;
+    .options {
+        display: grid;
+        grid-template-columns: 1fr;
     }
 
-    .options label{
-        width:100%;
+    .options label {
+        width: 100%;
     }
+
 }
+
 </style>
 </head>
+
 
 <body>
 
 <div class="container">
 
 <div class="card">
+
+
+<!-- COMPANY HEADER -->
 
 <header class="header">
 
@@ -273,17 +275,19 @@ Driver & Vehicle Daily Checklist
 </header>
 
 
-<!-- DATE / TIME -->
+<!-- CURRENT DATE AND TIME -->
 
 <div class="meta">
 
 <div class="meta-box">
 
 <div class="label">
-Current UAE Date & Time
+Current Date
 </div>
 
-<div class="value" id="datetime">
+<div
+class="value"
+id="currentDate">
 Loading...
 </div>
 
@@ -293,16 +297,19 @@ Loading...
 <div class="meta-box">
 
 <div class="label">
-Checklist Status
+Current Time
 </div>
 
-<div class="value">
-Ready for Submission
+<div
+class="value"
+id="currentTime">
+Loading...
 </div>
 
 </div>
 
 </div>
+
 
 
 <!-- FORM -->
@@ -311,8 +318,10 @@ Ready for Submission
 id="checklistForm"
 action="https://formspree.io/f/xaeyknoa"
 method="POST"
-enctype="multipart/form-data"
 >
+
+
+<!-- HIDDEN INFORMATION -->
 
 <input
 type="hidden"
@@ -328,12 +337,25 @@ value="Driver & Vehicle Daily Checklist"
 
 <input
 type="hidden"
-name="submission_datetime"
-id="submission_datetime"
+name="current_date"
+id="submission_date"
+>
+
+<input
+type="hidden"
+name="current_time"
+id="submission_time"
+>
+
+<input
+type="hidden"
+name="_subject"
+value="Driver & Vehicle Checklist - Rida International Travel & Tourism"
 >
 
 
-<!-- DRIVER -->
+
+<!-- DRIVER INFORMATION -->
 
 <div class="section">
 
@@ -341,6 +363,8 @@ id="submission_datetime"
 👨‍✈️ Driver Information
 </div>
 
+
+<!-- DRIVER NAME -->
 
 <div class="field">
 
@@ -358,36 +382,7 @@ placeholder="Enter driver name"
 </div>
 
 
-<!-- DRIVER CAMERA -->
-
-<div class="field">
-
-<div class="question">
-📷 Driver Photo
-</div>
-
-<div class="camera">
-
-Take a photo of the driver using the mobile camera.
-
-<input
-type="file"
-name="driver_photo"
-accept="image/*"
-capture="user"
->
-
-</div>
-
-<div
-class="preview"
-id="driverPreview"
-></div>
-
-</div>
-
-
-<!-- HYGIENE -->
+<!-- DRIVER HYGIENE -->
 
 <div class="field">
 
@@ -432,7 +427,8 @@ Fair
 </div>
 
 
-<!-- VEHICLE -->
+
+<!-- VEHICLE CHECKLIST -->
 
 <div class="section">
 
@@ -441,12 +437,13 @@ Fair
 </div>
 
 
-<!-- INTERIOR CLEAN -->
+
+<!-- INTERIOR CLEANLINESS -->
 
 <div class="field">
 
 <div class="question">
-Vehicle Cleanness — Interior *
+Vehicle Cleanliness — Interior *
 </div>
 
 <div class="options">
@@ -484,12 +481,13 @@ Fair
 </div>
 
 
-<!-- EXTERIOR CLEAN -->
+
+<!-- EXTERIOR CLEANLINESS -->
 
 <div class="field">
 
 <div class="question">
-Vehicle Cleanness — Exterior *
+Vehicle Cleanliness — Exterior *
 </div>
 
 <div class="options">
@@ -525,6 +523,7 @@ Fair
 </div>
 
 </div>
+
 
 
 <!-- INTERIOR DAMAGE -->
@@ -561,6 +560,7 @@ Yes
 </div>
 
 
+
 <!-- EXTERIOR DAMAGE -->
 
 <div class="field">
@@ -593,6 +593,7 @@ Yes
 </div>
 
 </div>
+
 
 
 <!-- TYRES -->
@@ -638,6 +639,7 @@ Need Attention
 </div>
 
 
+
 <!-- AC -->
 
 <div class="field">
@@ -681,6 +683,7 @@ Not Cooling
 </div>
 
 
+
 <!-- RADIATOR -->
 
 <div class="field">
@@ -715,6 +718,7 @@ Needs Attention
 </div>
 
 
+
 <!-- BELTS -->
 
 <div class="field">
@@ -728,7 +732,7 @@ Vehicle Belts — Check all that apply *
 <label>
 <input
 type="checkbox"
-name="belts[]"
+name="belts"
 value="AC Belt Checked"
 >
 AC Belt Checked
@@ -737,7 +741,7 @@ AC Belt Checked
 <label>
 <input
 type="checkbox"
-name="belts[]"
+name="belts"
 value="Fan Belt Checked"
 >
 Fan Belt Checked
@@ -746,7 +750,7 @@ Fan Belt Checked
 <label>
 <input
 type="checkbox"
-name="belts[]"
+name="belts"
 value="Other Belts Checked"
 >
 Other Belts Checked
@@ -755,6 +759,7 @@ Other Belts Checked
 </div>
 
 </div>
+
 
 
 <!-- ENGINE OIL -->
@@ -800,6 +805,7 @@ Needs Attention
 </div>
 
 
+
 <!-- CLUTCH -->
 
 <div class="field">
@@ -843,6 +849,7 @@ Needs Attention
 </div>
 
 
+
 <!-- FUEL -->
 
 <div class="field">
@@ -876,38 +883,8 @@ Fuel Required
 
 </div>
 
-
-<!-- DAMAGE PHOTOS -->
-
-<div class="field">
-
-<div class="question">
-📷 Vehicle Damage Photo(s)
 </div>
 
-<div class="camera">
-
-Capture photos of any interior or exterior damage.
-
-<input
-type="file"
-name="vehicle_damage_photos[]"
-id="damagePhotos"
-accept="image/*"
-capture="environment"
-multiple
->
-
-</div>
-
-<div
-class="preview"
-id="damagePreview"
-></div>
-
-</div>
-
-</div>
 
 
 <!-- COMMENTS -->
@@ -926,12 +903,14 @@ placeholder="Enter additional comments, observations, or vehicle issues..."
 </div>
 
 
+
 <!-- MESSAGE -->
 
 <div
 id="message"
-class="notice"
-></div>
+class="notice">
+</div>
+
 
 
 <!-- SUBMIT -->
@@ -946,151 +925,173 @@ type="submit"
 
 </button>
 
+
 </form>
 
 
+
+<!-- FOOTER -->
+
 <div class="footer">
 
-Rida International Travel & Tourism • GitHub Pages
+Rida International Travel & Tourism
+•
+Driver & Vehicle Checklist
 
 </div>
 
-</div>
 
 </div>
+</div>
+
 
 
 <script>
 
-/* =====================================
-   UAE DATE & TIME
-===================================== */
+/* ==========================================
+   CURRENT UAE DATE & TIME
+========================================== */
 
-function updateDateTime(){
+function updateDateTime() {
 
     const now = new Date();
 
-    document.getElementById("datetime").textContent =
-        now.toLocaleString(
-            "en-AE",
-            {
-                timeZone:"Asia/Dubai",
-                year:"numeric",
-                month:"short",
-                day:"2-digit",
-                hour:"2-digit",
-                minute:"2-digit",
-                second:"2-digit"
-            }
-        );
+
+    const dateText =
+        now.toLocaleDateString("en-AE", {
+
+            timeZone: "Asia/Dubai",
+
+            year: "numeric",
+
+            month: "2-digit",
+
+            day: "2-digit"
+
+        });
+
+
+    const timeText =
+        now.toLocaleTimeString("en-AE", {
+
+            timeZone: "Asia/Dubai",
+
+            hour: "2-digit",
+
+            minute: "2-digit",
+
+            second: "2-digit",
+
+            hour12: true
+
+        });
+
+
+    document.getElementById("currentDate")
+        .textContent = dateText;
+
+
+    document.getElementById("currentTime")
+        .textContent = timeText;
+
 }
+
+
+/* Start clock */
 
 updateDateTime();
 
-setInterval(updateDateTime,1000);
+setInterval(updateDateTime, 1000);
 
 
-/* =====================================
-   IMAGE PREVIEW
-===================================== */
 
-function preview(input,target){
-
-    const box =
-        document.getElementById(target);
-
-    box.innerHTML = "";
-
-    [...input.files].forEach(file => {
-
-        if(!file.type.startsWith("image/"))
-            return;
-
-        const img =
-            document.createElement("img");
-
-        img.alt = "Photo preview";
-
-        img.src =
-            URL.createObjectURL(file);
-
-        box.appendChild(img);
-
-    });
-}
-
-
-/* DRIVER PHOTO */
-
-document
-.querySelector('input[name="driver_photo"]')
-.addEventListener("change",function(){
-
-    preview(
-        this,
-        "driverPreview"
-    );
-
-});
-
-
-/* DAMAGE PHOTOS */
-
-document
-.getElementById("damagePhotos")
-.addEventListener("change",function(){
-
-    preview(
-        this,
-        "damagePreview"
-    );
-
-});
-
-
-/* =====================================
+/* ==========================================
    FORM SUBMISSION
-===================================== */
+========================================== */
 
 document
 .getElementById("checklistForm")
-.addEventListener("submit",async function(e){
+.addEventListener("submit", async function(e) {
 
     e.preventDefault();
 
 
-    /* Check belts */
+    /* Check vehicle belts */
 
-    const beltBoxes =
+    const belts =
         this.querySelectorAll(
-            'input[name="belts[]"]'
+            'input[name="belts"]'
         );
 
-    const beltChecked =
-        [...beltBoxes].some(
-            box => box.checked
+
+    const atLeastOneBelt =
+        [...belts].some(
+            checkbox => checkbox.checked
         );
 
-    if(!beltChecked){
+
+    if (!atLeastOneBelt) {
 
         alert(
             "Please check at least one vehicle belt item."
         );
 
         return;
+
     }
 
 
-    /* Current submission time */
+    /* Current UAE date/time */
 
-    document
-    .getElementById("submission_datetime")
-    .value =
-        new Date().toISOString();
+    const now = new Date();
 
+
+    const submissionDate =
+        now.toLocaleDateString("en-AE", {
+
+            timeZone: "Asia/Dubai",
+
+            year: "numeric",
+
+            month: "2-digit",
+
+            day: "2-digit"
+
+        });
+
+
+    const submissionTime =
+        now.toLocaleTimeString("en-AE", {
+
+            timeZone: "Asia/Dubai",
+
+            hour: "2-digit",
+
+            minute: "2-digit",
+
+            second: "2-digit",
+
+            hour12: true
+
+        });
+
+
+    document.getElementById(
+        "submission_date"
+    ).value = submissionDate;
+
+
+    document.getElementById(
+        "submission_time"
+    ).value = submissionTime;
+
+
+
+    /* Button and message */
 
     const button =
         document.getElementById("submitBtn");
+
 
     const message =
         document.getElementById("message");
@@ -1102,32 +1103,62 @@ document
         "Submitting Checklist...";
 
 
-    message.style.display =
-        "none";
+    message.style.display = "none";
 
 
-    try{
+
+    /* Submit to Formspree */
+
+    try {
 
         const response =
             await fetch(
+
                 this.action,
+
                 {
-                    method:"POST",
-                    body:new FormData(this),
-                    headers:{
-                        "Accept":"application/json"
+
+                    method: "POST",
+
+                    body: new FormData(this),
+
+                    headers: {
+
+                        "Accept":
+                        "application/json"
+
                     }
+
                 }
+
             );
 
 
-        if(!response.ok){
+        const data =
+            await response
+            .json()
+            .catch(() => ({}));
 
-            throw new Error(
-                "Submission failed. Please try again."
-            );
+
+        if (!response.ok) {
+
+            const errorText =
+                data.errors
+
+                ? data.errors
+                    .map(
+                        error =>
+                        error.message
+                    )
+                    .join(", ")
+
+                : "Submission failed. Please try again.";
+
+
+            throw new Error(errorText);
 
         }
+
 
 
         /* SUCCESS */
@@ -1135,47 +1166,63 @@ document
         message.className =
             "notice success";
 
+
         message.textContent =
             "✅ Checklist submitted successfully.";
+
 
         message.style.display =
             "block";
 
 
-        /* Clear form */
+        /* Reset form */
 
         this.reset();
 
-        document
-        .getElementById("driverPreview")
-        .innerHTML = "";
 
-        document
-        .getElementById("damagePreview")
-        .innerHTML = "";
+        /* Keep date/time visible */
 
+        updateDateTime();
+
+
+        /* Go to top */
 
         window.scrollTo({
-            top:0,
-            behavior:"smooth"
+
+            top: 0,
+
+            behavior: "smooth"
+
         });
 
 
-    }catch(error){
+    }
+
+
+    /* ERROR */
+
+    catch (error) {
 
         message.className =
             "notice error";
 
+
         message.textContent =
-            "❌ " +
-            error.message;
+            "❌ " + error.message;
+
 
         message.style.display =
             "block";
 
-    }finally{
+    }
+
+
+    /* Enable button */
+
+    finally {
 
         button.disabled = false;
+
 
         button.textContent =
             "✅ SUBMIT DRIVER & VEHICLE CHECKLIST";
