@@ -249,6 +249,35 @@ textarea {
 
 }
 
+
+/* LANGUAGE SWITCHER */
+.language-switcher {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f7fafb;
+}
+.language-switcher button {
+    border: 1px solid var(--primary);
+    border-radius: 9px;
+    padding: 9px 16px;
+    background: white;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+}
+.language-switcher button.active {
+    background: var(--primary);
+    color: white;
+}
+body[dir="rtl"] .header { text-align: right; }
+body[dir="rtl"] .section-title,
+body[dir="rtl"] .question { text-align: right; }
+body[dir="rtl"] .options { direction: rtl; }
+body[dir="rtl"] .options input { margin-right: 0; margin-left: 6px; }
+input[type="text"], textarea { direction: ltr; text-align: left; }
+
 </style>
 </head>
 
@@ -273,6 +302,11 @@ Driver & Vehicle Daily Checklist
 </p>
 
 </header>
+
+<div class="language-switcher" aria-label="Choose language">
+<button type="button" id="englishBtn" class="active" onclick="setLanguage('en')">English</button>
+<button type="button" id="urduBtn" onclick="setLanguage('ur')">اردو</button>
+</div>
 
 
 <!-- CURRENT DATE AND TIME -->
@@ -967,6 +1001,93 @@ Driver & Vehicle Checklist
 
 <script>
 
+
+/* ==========================================
+   ENGLISH / URDU LANGUAGE SWITCHER
+   Radio values and submitted field names stay
+   in English for clear office records.
+========================================== */
+let currentLanguage = "en";
+
+const urduTranslations = {
+    "Driver & Vehicle Daily Checklist": "ڈرائیور اور گاڑی کی روزانہ چیک لسٹ",
+    "Current Date": "آج کی تاریخ",
+    "Current Time": "موجودہ وقت",
+    "👨‍✈️ Driver Information": "👨‍✈️ ڈرائیور کی معلومات",
+    "Vehicle Number *": "گاڑی کا نمبر *",
+    "Enter vehicle number": "گاڑی کا نمبر درج کریں",
+    "Driver Name *": "ڈرائیور کا نام *",
+    "Enter driver name": "ڈرائیور کا نام درج کریں",
+    "Driver Hygiene *": "ڈرائیور کی صفائی ستھرائی *",
+    "Excellent": "بہترین",
+    "Good": "اچھا",
+    "Fair": "مناسب",
+    "🚐 Vehicle Checklist": "🚐 گاڑی کی چیک لسٹ",
+    "Vehicle Cleanliness — Interior *": "گاڑی کے اندر کی صفائی *",
+    "Vehicle Cleanliness — Exterior *": "گاڑی کے باہر کی صفائی *",
+    "Any Interior Damage? *": "کیا گاڑی کے اندر کوئی نقصان ہے؟ *",
+    "Any Exterior Damage? *": "کیا گاڑی کے باہر کوئی نقصان ہے؟ *",
+    "No": "نہیں",
+    "Yes": "ہاں",
+    "Vehicle Tyres Condition *": "گاڑی کے ٹائروں کی حالت *",
+    "Need Attention": "توجہ درکار ہے",
+    "Vehicle AC Cooling *": "گاڑی کے اے سی کی ٹھنڈک *",
+    "Not Cooling": "ٹھنڈک نہیں کر رہا",
+    "Radiator Water *": "ریڈی ایٹر میں پانی *",
+    "Checked - OK": "چیک کیا، ٹھیک ہے",
+    "Needs Attention": "توجہ درکار ہے",
+    "Vehicle Belts — Check all that apply *": "گاڑی کی بیلٹس — تمام متعلقہ چیزیں چیک کریں *",
+    "AC Belt Checked": "اے سی بیلٹ چیک کی",
+    "Fan Belt Checked": "فین بیلٹ چیک کی",
+    "Other Belts Checked": "دیگر بیلٹس چیک کیں",
+    "Engine Oil Check *": "انجن آئل چیک کریں *",
+    "Normal": "معمول کے مطابق",
+    "Low": "کم",
+    "Vehicle Clutch Condition *": "گاڑی کے کلچ کی حالت *",
+    "Fuel Level *": "ایندھن کی مقدار *",
+    "Enough Fuel to do the Job": "ڈیوٹی کے لیے کافی ایندھن ہے",
+    "Fuel Required": "ایندھن درکار ہے",
+    "📝 Driver Additional Comments": "📝 ڈرائیور کے اضافی نوٹس",
+    "Enter additional comments, observations, or vehicle issues...": "اضافی نوٹس، مشاہدات یا گاڑی کے مسائل درج کریں...",
+    "Rida International Travel & Tourism": "Rida International Travel & Tourism",
+    "•": "•"
+};
+
+function setLanguage(language) {
+    currentLanguage = language;
+    document.documentElement.lang = language === "ur" ? "ur" : "en";
+    document.body.dir = language === "ur" ? "rtl" : "ltr";
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+        const parentTag = node.parentElement && node.parentElement.tagName;
+        if (parentTag === "SCRIPT" || parentTag === "STYLE") continue;
+        if (node.nodeValue.trim() === "") continue;
+        if (!node.__englishText) node.__englishText = node.nodeValue;
+        const original = node.__englishText;
+        const trimmed = original.trim();
+        const leading = original.match(/^\s*/)[0];
+        const trailing = original.match(/\s*$/)[0];
+        const translated = language === "ur" ? (urduTranslations[trimmed] || trimmed) : trimmed;
+        node.nodeValue = leading + translated + trailing;
+    }
+
+    document.querySelectorAll("[placeholder]").forEach((element) => {
+        if (!element.dataset.englishPlaceholder) {
+            element.dataset.englishPlaceholder = element.getAttribute("placeholder");
+        }
+        const english = element.dataset.englishPlaceholder;
+        element.setAttribute("placeholder", language === "ur" ? (urduTranslations[english] || english) : english);
+    });
+
+    document.getElementById("englishBtn").classList.toggle("active", language === "en");
+    document.getElementById("urduBtn").classList.toggle("active", language === "ur");
+    document.getElementById("submitBtn").textContent =
+        language === "ur" ? "✅ ڈرائیور اور گاڑی کی چیک لسٹ جمع کریں" : "✅ SUBMIT DRIVER & VEHICLE CHECKLIST";
+    document.title = language === "ur" ? "ڈرائیور اور گاڑی کی چیک لسٹ | Rida International" : "Driver & Vehicle Checklist | Rida International Travel & Tourism";
+}
+
 /* ==========================================
    CURRENT UAE DATE & TIME
 ========================================== */
@@ -1051,9 +1172,9 @@ document
 
     if (!atLeastOneBelt) {
 
-        alert(
-            "Please check at least one vehicle belt item."
-        );
+        alert(currentLanguage === "ur"
+            ? "براہ کرم گاڑی کی کم از کم ایک بیلٹ چیک کریں۔"
+            : "Please check at least one vehicle belt item.");
 
         return;
 
@@ -1118,8 +1239,9 @@ document
 
     button.disabled = true;
 
-    button.textContent =
-        "Submitting Checklist...";
+    button.textContent = currentLanguage === "ur"
+        ? "چیک لسٹ جمع ہو رہی ہے..."
+        : "Submitting Checklist...";
 
 
     message.style.display = "none";
@@ -1186,8 +1308,9 @@ document
             "notice success";
 
 
-        message.textContent =
-            "✅ Checklist submitted successfully.";
+        message.textContent = currentLanguage === "ur"
+            ? "✅ چیک لسٹ کامیابی سے جمع ہو گئی۔"
+            : "✅ Checklist submitted successfully.";
 
 
         message.style.display =
@@ -1243,8 +1366,9 @@ document
         button.disabled = false;
 
 
-        button.textContent =
-            "✅ SUBMIT DRIVER & VEHICLE CHECKLIST";
+        button.textContent = currentLanguage === "ur"
+            ? "✅ ڈرائیور اور گاڑی کی چیک لسٹ جمع کریں"
+            : "✅ SUBMIT DRIVER & VEHICLE CHECKLIST";
 
     }
 
