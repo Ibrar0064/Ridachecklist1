@@ -169,10 +169,13 @@ textarea {
 /* SUBMIT */
 
 .submit {
+    display: block;
     width: 100%;
+    min-height: 64px;
     border: 0;
     border-radius: 12px;
-    padding: 15px;
+    padding: 18px 16px;
+    margin: 0;
     background: linear-gradient(
         135deg,
         var(--primary),
@@ -181,7 +184,17 @@ textarea {
     color: white;
     font-size: 17px;
     font-weight: 800;
+    line-height: 1.4;
+    text-align: center;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.submit:active:not(:disabled) {
+    transform: scale(0.99);
+    filter: brightness(0.94);
 }
 
 .submit:disabled {
@@ -1155,6 +1168,9 @@ document
 
     e.preventDefault();
 
+    /* Ignore repeat taps while a submission is being processed. */
+    const button = document.getElementById("submitBtn");
+    if (button.disabled) return;
 
     /* Check vehicle belts */
 
@@ -1228,10 +1244,6 @@ document
 
 
     /* Button and message */
-
-    const button =
-        document.getElementById("submitBtn");
-
 
     const message =
         document.getElementById("message");
