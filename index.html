@@ -291,13 +291,49 @@ body[dir="rtl"] .options { direction: rtl; }
 body[dir="rtl"] .options input { margin-right: 0; margin-left: 6px; }
 input[type="text"], textarea { direction: ltr; text-align: left; }
 
+
+/* PASSWORD LOGIN */
+.auth-screen { max-width: 440px; margin: 9vh auto; padding: 18px; }
+.auth-card { background: #fff; border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 8px 28px rgba(23,49,59,.08); overflow: hidden; }
+.auth-body { padding: 22px; }
+.auth-body h2 { margin-top: 0; color: var(--primary); }
+.auth-body input[type="password"] { width: 100%; padding: 14px; border: 1px solid #cbd8de; border-radius: 9px; font: inherit; margin: 8px 0 14px; }
+.auth-button { width: 100%; min-height: 52px; border: 0; border-radius: 10px; background: linear-gradient(135deg,var(--primary),var(--secondary)); color: white; font-weight: 800; font-size: 16px; cursor: pointer; }
+.auth-message { display: none; padding: 11px; margin-top: 12px; border-radius: 8px; background: #fff0ee; color: var(--danger); overflow-wrap: anywhere; }
+.auth-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 10px 16px; background:#f7fafb; color:#52666f; font-size:13px; }
+.auth-toolbar button, .admin-panel button { border:1px solid var(--primary); border-radius:8px; padding:9px 12px; background:white; color:var(--primary); font-weight:700; cursor:pointer; }
+.admin-panel { margin: 12px 16px; padding: 16px; border:1px solid var(--border); border-radius:12px; background:#f7fafb; }
+.admin-panel h3 { margin-top:0; color:var(--primary); }
+.admin-panel input { width:100%; padding:12px; border:1px solid #cbd8de; border-radius:8px; font:inherit; margin:8px 0 12px; }
+.admin-status { margin-top:10px; font-size:14px; }
+
 </style>
 </head>
 
 
 <body>
 
-<div class="container">
+
+<div class="auth-screen" id="loginScreen">
+  <div class="auth-card">
+    <header class="header">
+      <h1>Rida International Travel &amp; Tourism</h1>
+      <p>Private Driver &amp; Vehicle Daily Checklist</p>
+    </header>
+    <div class="auth-body">
+      <h2>Sign in to Checklist</h2>
+      <p>Enter the shared driver password or administrator password.</p>
+      <form id="loginForm">
+        <label for="loginPassword"><strong>Password</strong></label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required maxlength="200" placeholder="Enter password">
+        <button class="auth-button" id="loginButton" type="submit">Sign In</button>
+      </form>
+      <div class="auth-message" id="loginMessage" role="alert"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="mainApp" style="display:none">
 
 <div class="card">
 
@@ -319,6 +355,21 @@ Driver & Vehicle Daily Checklist
 <div class="language-switcher" aria-label="Choose language">
 <button type="button" id="englishBtn" class="active" onclick="setLanguage('en')">English</button>
 <button type="button" id="urduBtn" onclick="setLanguage('ur')">اردو</button>
+</div>
+
+<div class="auth-toolbar">
+  <span id="signedInLabel">Signed in</span>
+  <button type="button" id="logoutButton">Sign Out</button>
+</div>
+<div class="admin-panel" id="adminPanel" style="display:none">
+  <h3>Administrator — Driver Password</h3>
+  <p>Set a new shared password for drivers. Use at least 10 characters. All current driver sessions will be signed out.</p>
+  <form id="changeDriverPasswordForm">
+    <label for="newDriverPassword"><strong>New driver password</strong></label>
+    <input id="newDriverPassword" type="password" autocomplete="new-password" minlength="10" maxlength="200" required placeholder="At least 10 characters">
+    <button type="submit" id="changeDriverPasswordButton">Change Driver Password</button>
+  </form>
+  <div id="adminStatus" class="admin-status" role="status"></div>
 </div>
 
 
@@ -1014,6 +1065,84 @@ Driver & Vehicle Checklist
 
 <script>
 
+/* SERVER-VERIFIED LOGIN */
+async function refreshAuthentication() {
+  const loginScreen = document.getElementById("loginScreen");
+  const mainApp = document.getElementById("mainApp");
+  try {
+    const response = await fetch("/api/session", { credentials: "same-origin", cache: "no-store" });
+    const state = await response.json();
+    if (!state.configured) {
+      document.getElementById("loginMessage").textContent = "Security setup is not complete. Please ask the administrator to finish setup in Render.";
+      document.getElementById("loginMessage").style.display = "block";
+      loginScreen.style.display = "block";
+      mainApp.style.display = "none";
+      document.getElementById("loginButton").disabled = true;
+      return;
+    }
+    if (state.authenticated) {
+      loginScreen.style.display = "none";
+      mainApp.style.display = "block";
+      document.getElementById("signedInLabel").textContent = state.role === "admin" ? "Signed in — Administrator" : "Signed in — Driver";
+      document.getElementById("adminPanel").style.display = state.role === "admin" ? "block" : "none";
+    } else {
+      loginScreen.style.display = "block";
+      mainApp.style.display = "none";
+      document.getElementById("loginButton").disabled = false;
+    }
+  } catch {
+    document.getElementById("loginMessage").textContent = "Cannot connect to the security service. Please try again.";
+    document.getElementById("loginMessage").style.display = "block";
+  }
+}
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const button = document.getElementById("loginButton");
+  const message = document.getElementById("loginMessage");
+  button.disabled = true;
+  message.style.display = "none";
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: document.getElementById("loginPassword").value })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Sign-in failed.");
+    document.getElementById("loginPassword").value = "";
+    await refreshAuthentication();
+  } catch (error) {
+    message.textContent = error.message || "Sign-in failed.";
+    message.style.display = "block";
+  } finally { button.disabled = false; }
+});
+document.getElementById("logoutButton").addEventListener("click", async function() {
+  await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
+  await refreshAuthentication();
+});
+document.getElementById("changeDriverPasswordForm").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const button = document.getElementById("changeDriverPasswordButton");
+  const status = document.getElementById("adminStatus");
+  const password = document.getElementById("newDriverPassword").value;
+  button.disabled = true;
+  status.textContent = "Saving password…";
+  try {
+    const response = await fetch("/api/admin/driver-password", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Password could not be changed.");
+    document.getElementById("newDriverPassword").value = "";
+    status.textContent = result.message || "Driver password changed.";
+  } catch (error) { status.textContent = error.message || "Password could not be changed."; }
+  finally { button.disabled = false; }
+});
+refreshAuthentication();
+
+
 
 /* ==========================================
    ENGLISH / URDU LANGUAGE SWITCHER
@@ -1260,13 +1389,11 @@ document
 
 
 
-    /* Save securely to Supabase and preserve existing Formspree delivery */
+    /* Submit through the authenticated server; secrets stay server-side. */
     const formData = new FormData(this);
     const checklistPayload = {
-        company: formData.get("company"),
-        form_type: formData.get("form_type"),
-        submission_date: formData.get("current_date"),
-        submission_time: formData.get("current_time"),
+        submission_date: document.getElementById("submission_date").value,
+        submission_time: document.getElementById("submission_time").value,
         vehicle_number: String(formData.get("vehicle_number") || "").trim(),
         driver_name: String(formData.get("driver_name") || "").trim(),
         driver_hygiene: formData.get("driver_hygiene"),
@@ -1281,61 +1408,22 @@ document
         engine_oil: formData.get("engine_oil"),
         clutch_condition: formData.get("clutch_condition"),
         fuel_status: formData.get("fuel_status"),
-        driver_comments: String(formData.get("driver_comments") || "").trim() || null
+        driver_comments: String(formData.get("driver_comments") || "").trim()
     };
-
-    const supabaseUrl = "https://mlaeaeuwxzavdioozxgi.supabase.co";
-    const supabasePublishableKey = "sb_publishable_i0Jr-bzxNDprMMJW5tVLMQ_vnK16nzg";
     let deliveryNote = "";
-
-    try {
-        const supabaseRequest = fetch(
-            supabaseUrl + "/rest/v1/driver_vehicle_checklists",
-            {
-                method: "POST",
-                headers: {
-                    "apikey": supabasePublishableKey,
-                    "Authorization": "Bearer " + supabasePublishableKey,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal"
-                },
-                body: JSON.stringify(checklistPayload)
-            }
-        );
-
-        const formspreeRequest = fetch(
-            this.action,
-            {
-                method: "POST",
-                body: formData,
-                headers: { "Accept": "application/json" }
-            }
-        );
-
-        const [supabaseResult, formspreeResult] = await Promise.allSettled([
-            supabaseRequest,
-            formspreeRequest
-        ]);
-
-        const databaseSaved =
-            supabaseResult.status === "fulfilled" && supabaseResult.value.ok;
-        const emailDelivered =
-            formspreeResult.status === "fulfilled" && formspreeResult.value.ok;
-
-        if (!databaseSaved) {
-            console.error("Supabase checklist save failed", supabaseResult);
-            if (emailDelivered) {
-                throw new Error("Checklist email was sent, but secure database saving failed. Please notify the administrator before resubmitting.");
-            }
-            throw new Error("Submission failed. Please check your connection and try again.");
-        }
-
-        if (!emailDelivered) {
-            deliveryNote = currentLanguage === "ur"
-                ? " (ڈیٹا محفوظ ہو گیا، لیکن ای میل کی ترسیل کی تصدیق نہیں ہو سکی۔)"
-                : " (Saved securely; email delivery could not be confirmed.)";
-            console.warn("Formspree delivery could not be confirmed", formspreeResult);
-        }
+    const submissionResponse = await fetch("/api/checklist", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checklistPayload)
+    });
+    const submissionResult = await submissionResponse.json();
+    if (!submissionResponse.ok) throw new Error(submissionResult.error || "Submission failed. Please try again.");
+    if (!submissionResult.emailDelivered) {
+        deliveryNote = currentLanguage === "ur"
+            ? " (ڈیٹا محفوظ ہو گیا، لیکن ای میل کی ترسیل کی تصدیق نہیں ہو سکی۔)"
+            : " (Saved securely; email delivery could not be confirmed.)";
+    }
 
         /* SUCCESS */
 
