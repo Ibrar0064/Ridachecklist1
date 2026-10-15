@@ -318,7 +318,7 @@ input[type="text"], textarea { direction: ltr; text-align: left; }
   <div class="auth-card">
     <header class="header">
       <h1>Rida International Travel &amp; Tourism</h1>
-      <p>Private Driver &amp; Vehicle Daily Checklist</p>
+      <p>Driver &amp; Vehicle Daily Checklist</p>
     </header>
     <div class="auth-body">
       <h2>Sign in to Checklist</h2>
@@ -475,6 +475,28 @@ type="text"
 name="vehicle_number"
 required
 placeholder="Enter vehicle number"
+autocomplete="off"
+>
+
+</div>
+
+
+<!-- CURRENT KILOMETERS -->
+
+<div class="field">
+
+<div class="question">
+Current Kilometers *
+</div>
+
+<input
+type="text"
+name="current_kilometers"
+required
+inputmode="numeric"
+pattern="[0-9]+([.][0-9]+)?"
+title="Enter the current odometer reading in kilometers"
+placeholder="Enter current kilometers"
 autocomplete="off"
 >
 
@@ -1158,6 +1180,8 @@ const urduTranslations = {
     "👨‍✈️ Driver Information": "👨‍✈️ ڈرائیور کی معلومات",
     "Vehicle Number *": "گاڑی کا نمبر *",
     "Enter vehicle number": "گاڑی کا نمبر درج کریں",
+    "Current Kilometers *": "موجودہ کلومیٹر ریڈنگ *",
+    "Enter current kilometers": "موجودہ کلومیٹر درج کریں",
     "Driver Name *": "ڈرائیور کا نام *",
     "Enter driver name": "ڈرائیور کا نام درج کریں",
     "Driver Hygiene *": "ڈرائیور کی صفائی ستھرائی *",
@@ -1396,6 +1420,7 @@ document
         submission_date: document.getElementById("submission_date").value,
         submission_time: document.getElementById("submission_time").value,
         vehicle_number: String(formData.get("vehicle_number") || "").trim(),
+        current_kilometers: String(formData.get("current_kilometers") || "").trim(),
         driver_name: String(formData.get("driver_name") || "").trim(),
         driver_hygiene: formData.get("driver_hygiene"),
         interior_cleanliness: formData.get("interior_cleanliness"),

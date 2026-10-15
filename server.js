@@ -254,7 +254,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const data = await readBody(req);
-      const required = ["vehicle_number", "driver_name", "driver_hygiene", "interior_cleanliness", "exterior_cleanliness", "interior_damage", "exterior_damage", "tyres_condition", "ac_cooling", "radiator_water", "engine_oil", "clutch_condition", "fuel_status", "submission_date", "submission_time"];
+      const required = ["vehicle_number", "current_kilometers", "driver_name", "driver_hygiene", "interior_cleanliness", "exterior_cleanliness", "interior_damage", "exterior_damage", "tyres_condition", "ac_cooling", "radiator_water", "engine_oil", "clutch_condition", "fuel_status", "submission_date", "submission_time"];
       if (required.some(key => typeof data[key] !== "string" || !data[key].trim()) || !Array.isArray(data.belts) || data.belts.length === 0) {
         json(res, 400, { error: "Please complete all required checklist fields and check at least one belt item." });
         return;
@@ -265,6 +265,7 @@ const server = http.createServer(async (req, res) => {
         submission_date: data.submission_date,
         submission_time: data.submission_time,
         vehicle_number: data.vehicle_number.trim().slice(0, 100),
+        current_kilometers: data.current_kilometers.trim().slice(0, 30),
         driver_name: data.driver_name.trim().slice(0, 150),
         driver_hygiene: data.driver_hygiene,
         interior_cleanliness: data.interior_cleanliness,
