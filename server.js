@@ -13,7 +13,7 @@ const FORMSPREE_URL = "https://formspree.io/f/xaeyknoa";
 const sessions = new Map();
 const loginAttempts = new Map();
 const SESSION_MS = 8 * 60 * 60 * 1000;
-const MAX_BODY = 64 * 1024;
+const MAX_BODY = 5 * 1024 * 1024;
 
 function configured() {
   return Boolean(ADMIN_PASSWORD && INITIAL_DRIVER_PASSWORD && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL);
@@ -134,6 +134,44 @@ function sendHtml(res, headOnly = false) {
     res.end(headOnly ? undefined : content);
   });
 }
+async function uploadDriverPhoto(dataUrl) {
+  if (typeof dataUrl !== "string") throw new Error("A driver photo is required.");
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!match) throw new Error("Please upload a JPG, PNG, or WebP driver photo.");
+  const mimeType = match[1];
+  const imageBuffer = Buffer.from(match[2], "base64");
+  if (!imageBuffer.length || imageBuffer.length > 3 * 1024 * 1024) {
+    throw new Error("The driver photo must be 3 MB or smaller.");
+  }
+  const extension = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[mimeType];
+  const objectPath = Date.now() + "-" + crypto.randomUUID() + "." + extension;
+  const uploadResponse = await supabaseRequest("/storage/v1/object/driver-photos/" + objectPath, {
+    method: "POST",
+    headers: { "Content-Type": mimeType, "x-upsert": "false" },
+    body: imageBuffer
+  });
+  if (!uploadResponse.ok) {
+    console.error("Driver photo upload failed:", uploadResponse.status, await uploadResponse.text());
+    throw new Error("Could not securely save the driver photo. Please try again.");
+  }
+  const signResponse = await supabaseRequest("/storage/v1/object/sign/driver-photos/" + objectPath, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 2592000 })
+  });
+  if (!signResponse.ok) {
+    console.error("Driver photo link creation failed:", signResponse.status, await signResponse.text());
+    throw new Error("The photo was saved, but its email link could not be created. Please contact the administrator.");
+  }
+  const signed = await signResponse.json();
+  const signedPath = signed.signedURL || signed.signedUrl;
+  if (!signedPath) throw new Error("The photo was saved, but its email link could not be created.");
+  const photoUrl = /^https?:\/\//i.test(signedPath)
+    ? signedPath
+    : SUPABASE_URL + (signedPath.startsWith("/storage/v1/") ? "" : "/storage/v1") + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
+  return { path: objectPath, url: photoUrl };
+}
+
 function formspreeBody(data) {
   const params = new URLSearchParams();
   const fields = {
@@ -141,8 +179,9 @@ function formspreeBody(data) {
     form_type: "Driver & Vehicle Daily Checklist",
     current_date: data.submission_date,
     current_time: data.submission_time,
-    _subject: "Driver & Vehicle Checklist - Rida International Travel & Tourism",
+    _subject: "Driver & Vehicle Checklist - Vehicle " + data.vehicle_number + " - Rida International Travel & Tourism",
     vehicle_number: data.vehicle_number,
+    driver_photo_link: data.driver_photo_url || "",
     driver_name: data.driver_name,
     driver_hygiene: data.driver_hygiene,
     interior_cleanliness: data.interior_cleanliness,
@@ -259,6 +298,10 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { error: "Please complete all required checklist fields and check at least one belt item." });
         return;
       }
+      if (typeof data.driver_photo_data !== "string" || !data.driver_photo_data) {
+        json(res, 400, { error: "A current driver photo is required." });
+        return;
+      }
       const payload = {
         company: "Rida International Travel & Tourism",
         form_type: "Driver & Vehicle Daily Checklist",
@@ -281,6 +324,10 @@ const server = http.createServer(async (req, res) => {
         fuel_status: data.fuel_status,
         driver_comments: typeof data.driver_comments === "string" ? data.driver_comments.trim().slice(0, 5000) || null : null
       };
+      const uploadedPhoto = await uploadDriverPhoto(data.driver_photo_data);
+      payload.driver_photo_path = uploadedPhoto.path;
+      payload.driver_photo_url = uploadedPhoto.url;
+
       const [dbResult, emailResult] = await Promise.allSettled([
         supabaseRequest("/rest/v1/driver_vehicle_checklists", {
           method: "POST",
