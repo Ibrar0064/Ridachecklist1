@@ -521,6 +521,14 @@ placeholder="Enter driver name"
 </div>
 
 
+<!-- DRIVER PHOTO -->
+<div class="field">
+  <div class="question">Driver Photo *</div>
+  <label for="driver_photo">Choose a recent passport-size driver photo</label>
+  <input id="driver_photo" type="file" name="driver_photo" accept="image/jpeg,image/png,image/webp" required>
+  <p style="font-size:13px;color:#657780;margin-bottom:0">Required. JPG, PNG or WebP only; maximum 3 MB. The photo is stored privately.</p>
+</div>
+
 <!-- DRIVER HYGIENE -->
 
 <div class="field">
@@ -1184,6 +1192,9 @@ const urduTranslations = {
     "Enter current kilometers": "موجودہ کلومیٹر درج کریں",
     "Driver Name *": "ڈرائیور کا نام *",
     "Enter driver name": "ڈرائیور کا نام درج کریں",
+    "Driver Photo *": "ڈرائیور کی تصویر *",
+    "Choose a recent passport-size driver photo": "ڈرائیور کی حالیہ پاسپورٹ سائز تصویر منتخب کریں",
+    "Required. JPG, PNG or WebP only; maximum 3 MB. The photo is stored privately.": "ضروری ہے۔ صرف JPG، PNG یا WebP؛ زیادہ سے زیادہ 3 MB۔ تصویر نجی طور پر محفوظ ہوگی۔",
     "Driver Hygiene *": "ڈرائیور کی صفائی ستھرائی *",
     "Excellent": "بہترین",
     "Good": "اچھا",
@@ -1315,6 +1326,15 @@ setInterval(updateDateTime, 1000);
    FORM SUBMISSION
 ========================================== */
 
+function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Could not read the selected driver photo."));
+        reader.readAsDataURL(file);
+    });
+}
+
 document
 .getElementById("checklistForm")
 .addEventListener("submit", async function(e) {
@@ -1349,6 +1369,22 @@ document
 
     }
 
+
+    /* Require a current passport-size driver photo. */
+    const photoInput = this.querySelector('input[name="driver_photo"]');
+    const photoFile = photoInput && photoInput.files ? photoInput.files[0] : null;
+    if (!photoFile) {
+        alert(currentLanguage === "ur" ? "براہ کرم ڈرائیور کی تصویر منتخب کریں۔" : "Please select a driver photo.");
+        return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(photoFile.type)) {
+        alert(currentLanguage === "ur" ? "براہ کرم JPG، PNG یا WebP تصویر منتخب کریں۔" : "Please choose a JPG, PNG, or WebP image.");
+        return;
+    }
+    if (photoFile.size > 3 * 1024 * 1024) {
+        alert(currentLanguage === "ur" ? "تصویر 3 MB سے چھوٹی ہونی چاہیے۔" : "The photo must be 3 MB or smaller.");
+        return;
+    }
 
     /* Current UAE date/time */
 
@@ -1422,6 +1458,7 @@ document
         vehicle_number: String(formData.get("vehicle_number") || "").trim(),
         current_kilometers: String(formData.get("current_kilometers") || "").trim(),
         driver_name: String(formData.get("driver_name") || "").trim(),
+        driver_photo_data: await fileToDataUrl(photoFile),
         driver_hygiene: formData.get("driver_hygiene"),
         interior_cleanliness: formData.get("interior_cleanliness"),
         exterior_cleanliness: formData.get("exterior_cleanliness"),
