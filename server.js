@@ -452,7 +452,7 @@ const server = http.createServer(async (req, res) => {
         res.end("Photo link unavailable.");
         return;
       }
-      const photoUrl = /^https?:\\/\\//i.test(signedPath)
+      const photoUrl = /^https?:\/\//i.test(signedPath)
         ? signedPath
         : SUPABASE_URL + (signedPath.startsWith("/storage/v1/") ? "" : "/storage/v1") + (signedPath.startsWith("/") ? "" : "/") + signedPath;
       res.writeHead(302, { "Location": photoUrl, "Cache-Control": "no-store" });
