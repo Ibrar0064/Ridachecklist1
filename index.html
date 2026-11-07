@@ -553,7 +553,8 @@ placeholder="Enter driver name"
   <div class="question">Driver Photo *</div>
   <label for="driver_photo">Choose a recent passport-size driver photo</label>
   <input id="driver_photo" type="file" name="driver_photo" accept="image/jpeg,image/png,image/webp" required>
-  <p style="font-size:13px;color:#657780;margin-bottom:0">Required. JPG, PNG or WebP only; maximum 3 MB. The photo is stored privately.</p>
+  <p style="font-size:13px;color:#657780;margin-bottom:0">Required. JPG, PNG or WebP. Large photos are automatically resized and compressed to under 2 MB before upload.</p>
+  <div id="photoCompressionStatus" role="status" style="margin-top:9px;font-size:13px;font-weight:700;color:#087443"></div>
 </div>
 
 <!-- DRIVER HYGIENE -->
@@ -1277,7 +1278,7 @@ const urduTranslations = {
     "Enter driver name": "ڈرائیور کا نام درج کریں",
     "Driver Photo *": "ڈرائیور کی تصویر *",
     "Choose a recent passport-size driver photo": "ڈرائیور کی حالیہ پاسپورٹ سائز تصویر منتخب کریں",
-    "Required. JPG, PNG or WebP only; maximum 3 MB. The photo is stored privately.": "ضروری ہے۔ صرف JPG، PNG یا WebP؛ زیادہ سے زیادہ 3 MB۔ تصویر نجی طور پر محفوظ ہوگی۔",
+    "Required. JPG, PNG or WebP. Large photos are automatically resized and compressed to under 2 MB before upload.": "ضروری ہے۔ JPG، PNG یا WebP۔ بڑی تصاویر اپ لوڈ سے پہلے خودکار طور پر 2 MB سے کم کی جائیں گی۔",
     "Driver Hygiene *": "ڈرائیور کی صفائی ستھرائی *",
     "Excellent": "بہترین",
     "Good": "اچھا",
@@ -1418,6 +1419,72 @@ function fileToDataUrl(file) {
     });
 }
 
+/* Compress large driver photos on the phone before sending them to the server. */
+async function compressDriverPhoto(file) {
+    const targetBytes = 2 * 1024 * 1024; // keep safely below Supabase 3 MB limit
+    if (file.size <= targetBytes) return file;
+    const imageUrl = await fileToDataUrl(file);
+    const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Could not open the selected photo. Please choose another image."));
+        image.src = imageUrl;
+    });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Photo compression is not supported on this device.");
+    let width = img.naturalWidth, height = img.naturalHeight;
+    const maxSide = 1800;
+    if (Math.max(width, height) > maxSide) {
+        const scale = maxSide / Math.max(width, height);
+        width = Math.round(width * scale); height = Math.round(height * scale);
+    }
+    let blob = null;
+    for (let resizePass = 0; resizePass < 5; resizePass++) {
+        canvas.width = width; canvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        for (const quality of [0.86, 0.78, 0.68, 0.58, 0.48]) {
+            blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+            if (blob && blob.size <= targetBytes) break;
+        }
+        if (blob && blob.size <= targetBytes) break;
+        width = Math.round(width * 0.78); height = Math.round(height * 0.78);
+    }
+    if (!blob || blob.size > 3 * 1024 * 1024) throw new Error("This photo could not be reduced below 3 MB. Please choose a smaller photo.");
+    return new File([blob], (file.name.replace(/\.[^.]+$/, "") || "driver-photo") + ".jpg", {type:"image/jpeg", lastModified:Date.now()});
+}
+
+document.getElementById("driver_photo").addEventListener("change", async function() {
+    const status = document.getElementById("photoCompressionStatus");
+    status.textContent = "";
+    const file = this.files && this.files[0];
+    if (!file) return;
+    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+        status.style.color = "#b42318";
+        status.textContent = "Please select a JPG, PNG, or WebP image.";
+        return;
+    }
+    if (file.size <= 2 * 1024 * 1024) {
+        status.style.color = "#087443";
+        status.textContent = "Photo ready: " + (file.size / 1024 / 1024).toFixed(2) + " MB";
+        return;
+    }
+    status.style.color = "#0b4f71";
+    status.textContent = "Compressing photo…";
+    try {
+        const compressed = await compressDriverPhoto(file);
+        const transfer = new DataTransfer();
+        transfer.items.add(compressed);
+        this.files = transfer.files;
+        status.style.color = "#087443";
+        status.textContent = "✓ Compressed: " + (file.size / 1024 / 1024).toFixed(2) + " MB → " + (compressed.size / 1024 / 1024).toFixed(2) + " MB. Ready to upload.";
+    } catch (error) {
+        status.style.color = "#b42318";
+        status.textContent = error.message || "Photo compression failed.";
+    }
+});
+
 document
 .getElementById("checklistForm")
 .addEventListener("submit", async function(e) {
@@ -1465,7 +1532,7 @@ document
         return;
     }
     if (photoFile.size > 3 * 1024 * 1024) {
-        alert(currentLanguage === "ur" ? "تصویر 3 MB سے چھوٹی ہونی چاہیے۔" : "The photo must be 3 MB or smaller.");
+        alert(currentLanguage === "ur" ? "تصویر خودکار طور پر کم نہیں ہو سکی۔ براہ کرم دوسری چھوٹی تصویر منتخب کریں۔" : "This photo was not compressed successfully. Please choose a smaller photo.");
         return;
     }
 
