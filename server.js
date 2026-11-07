@@ -326,7 +326,8 @@ const server = http.createServer(async (req, res) => {
       };
       const uploadedPhoto = await uploadDriverPhoto(data.driver_photo_data);
       payload.driver_photo_path = uploadedPhoto.path;
-      payload.driver_photo_url = uploadedPhoto.url;
+      // Keep the signed photo URL for email only; the database stores the private object path.
+      const emailPayload = { ...payload, driver_photo_url: uploadedPhoto.url };
 
       const [dbResult, emailResult] = await Promise.allSettled([
         supabaseRequest("/rest/v1/driver_vehicle_checklists", {
@@ -337,7 +338,7 @@ const server = http.createServer(async (req, res) => {
         fetch(FORMSPREE_URL, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
-          body: formspreeBody(payload)
+          body: formspreeBody(emailPayload)
         })
       ]);
       const saved = dbResult.status === "fulfilled" && dbResult.value.ok;
