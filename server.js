@@ -181,7 +181,7 @@ function formspreeBody(data) {
     current_time: data.submission_time,
     _subject: "Driver & Vehicle Checklist - Vehicle " + data.vehicle_number + " - Rida International Travel & Tourism",
     vehicle_number: data.vehicle_number,
-    driver_photo_link: data.driver_photo_url || "",
+    driver_photo_link: data.driver_photo_short_url || "",
     driver_name: data.driver_name,
     driver_hygiene: data.driver_hygiene,
     interior_cleanliness: data.interior_cleanliness,
@@ -327,7 +327,8 @@ const server = http.createServer(async (req, res) => {
       const uploadedPhoto = await uploadDriverPhoto(data.driver_photo_data);
       payload.driver_photo_path = uploadedPhoto.path;
       // Keep the signed photo URL for email only; the database stores the private object path.
-      const emailPayload = { ...payload, driver_photo_url: uploadedPhoto.url };
+      const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+      const emailPayload = { ...payload, driver_photo_short_url: proto + "://" + req.headers.host + "/photo/" + encodeURIComponent(uploadedPhoto.path) };
 
       const [dbResult, emailResult] = await Promise.allSettled([
         supabaseRequest("/rest/v1/driver_vehicle_checklists", {
@@ -348,6 +349,38 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       json(res, 200, { ok: true, emailDelivered: emailed });
+      return;
+    }
+
+    if (req.method === "GET" && pathname.startsWith("/photo/")) {
+      const objectPath = decodeURIComponent(pathname.slice("/photo/".length));
+      if (!/^\\d+-[0-9a-f-]{36}\\.(?:jpg|png|webp)$/i.test(objectPath)) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Photo not found.");
+        return;
+      }
+      const signResponse = await supabaseRequest("/storage/v1/object/sign/driver-photos/" + objectPath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresIn: 2592000 })
+      });
+      if (!signResponse.ok) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Photo link expired or unavailable.");
+        return;
+      }
+      const signed = await signResponse.json();
+      const signedPath = signed.signedURL || signed.signedUrl;
+      if (!signedPath) {
+        res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Photo link unavailable.");
+        return;
+      }
+      const photoUrl = /^https?:\\/\\//i.test(signedPath)
+        ? signedPath
+        : SUPABASE_URL + (signedPath.startsWith("/storage/v1/") ? "" : "/storage/v1") + (signedPath.startsWith("/") ? "" : "/") + signedPath;
+      res.writeHead(302, { "Location": photoUrl, "Cache-Control": "no-store" });
+      res.end();
       return;
     }
 
