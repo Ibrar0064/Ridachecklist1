@@ -307,6 +307,17 @@ input[type="text"], textarea { direction: ltr; text-align: left; }
 .admin-panel input { width:100%; padding:12px; border:1px solid #cbd8de; border-radius:8px; font:inherit; margin:8px 0 12px; }
 .admin-status { margin-top:10px; font-size:14px; }
 
+
+.record-toolbar{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin:12px 0}
+.record-toolbar input{min-width:0;padding:11px;border:1px solid #cbd8de;border-radius:8px;font:inherit}
+.records-table-wrap{overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:10px}
+.records-table{width:100%;border-collapse:collapse;font-size:13px;min-width:650px}
+.records-table th,.records-table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.records-table th{background:#edf4f6;color:var(--primary)}
+.records-table button{margin:2px;padding:7px 9px;font-size:12px}
+.records-table .delete-record{border-color:var(--danger);color:var(--danger)}
+.records-note{font-size:12px;color:#657780}
+@media(max-width:650px){.record-toolbar{grid-template-columns:1fr 1fr}.record-toolbar input{grid-column:1/-1}.record-toolbar button{width:100%}}
 </style>
 </head>
 
@@ -370,6 +381,22 @@ Driver & Vehicle Daily Checklist
     <button type="submit" id="changeDriverPasswordButton">Change Driver Password</button>
   </form>
   <div id="adminStatus" class="admin-status" role="status"></div>
+</div>
+
+<div class="admin-panel" id="recordsAdminPanel" style="display:none">
+  <h3>Administrator — Checklist Records</h3>
+  <p>Search, download or delete submitted records. Only the administrator can access these controls.</p>
+  <div class="record-toolbar">
+    <input id="recordSearch" type="search" placeholder="Search vehicle number, driver or date" aria-label="Search checklist records">
+    <button type="button" id="refreshRecordsButton">Refresh Records</button>
+    <button type="button" id="downloadAllRecordsButton">Download All Excel (CSV)</button>
+  </div>
+  <div id="recordsStatus" class="admin-status" role="status">Loading records…</div>
+  <div class="records-table-wrap"><table class="records-table">
+    <thead><tr><th>Date / Time</th><th>Vehicle</th><th>Driver</th><th>Kilometers</th><th>Actions</th></tr></thead>
+    <tbody id="recordsTableBody"><tr><td colspan="5">Loading records…</td></tr></tbody>
+  </table></div>
+  <p class="records-note">PDF: opens a print-ready record; choose “Save as PDF” in your browser’s print menu. Excel: downloads a CSV file that opens in Excel.</p>
 </div>
 
 
@@ -1115,6 +1142,8 @@ async function refreshAuthentication() {
       mainApp.style.display = "block";
       document.getElementById("signedInLabel").textContent = state.role === "admin" ? "Signed in — Administrator" : "Signed in — Driver";
       document.getElementById("adminPanel").style.display = state.role === "admin" ? "block" : "none";
+      document.getElementById("recordsAdminPanel").style.display = state.role === "admin" ? "block" : "none";
+      if (state.role === "admin") loadAdminRecords();
     } else {
       loginScreen.style.display = "block";
       mainApp.style.display = "none";
@@ -1169,10 +1198,63 @@ document.getElementById("changeDriverPasswordForm").addEventListener("submit", a
     status.textContent = result.message || "Driver password changed.";
   } catch (error) { status.textContent = error.message || "Password could not be changed."; }
   finally { button.disabled = false; }
+
 });
 refreshAuthentication();
 
-
+/* ADMIN-ONLY RECORD MANAGEMENT */
+let adminRecords = [];
+function renderAdminRecords() {
+  const body = document.getElementById("recordsTableBody");
+  const term = document.getElementById("recordSearch").value.trim().toLowerCase();
+  const filtered = adminRecords.filter(record =>
+    [record.vehicle_number, record.driver_name, record.submission_date, record.submission_time, record.created_at]
+      .some(value => String(value || "").toLowerCase().includes(term))
+  );
+  body.replaceChildren();
+  if (!filtered.length) {
+    const row = document.createElement("tr"), cell = document.createElement("td");
+    cell.colSpan = 5; cell.textContent = adminRecords.length ? "No matching records." : "No checklist records found yet.";
+    row.appendChild(cell); body.appendChild(row); return;
+  }
+  filtered.forEach(record => {
+    const row = document.createElement("tr");
+    [(record.submission_date || "") + " " + (record.submission_time || ""),record.vehicle_number || "",record.driver_name || "",record.current_kilometers || ""].forEach(value => {
+      const cell=document.createElement("td"); cell.textContent=value; row.appendChild(cell);
+    });
+    const actions=document.createElement("td");
+    const csv=document.createElement("button"); csv.type="button"; csv.textContent="Excel"; csv.addEventListener("click",()=>window.location.href="/api/admin/checklists.csv?id="+encodeURIComponent(record.id));
+    const pdf=document.createElement("button"); pdf.type="button"; pdf.textContent="PDF / Print"; pdf.addEventListener("click",()=>window.open("/api/admin/checklists/"+encodeURIComponent(record.id)+"/print","_blank","noopener"));
+    const del=document.createElement("button"); del.type="button"; del.textContent="Delete"; del.className="delete-record"; del.addEventListener("click",()=>deleteAdminRecord(record));
+    actions.append(csv,pdf,del); row.appendChild(actions); body.appendChild(row);
+  });
+}
+async function loadAdminRecords() {
+  const status=document.getElementById("recordsStatus"); status.textContent="Loading records…";
+  try {
+    const response=await fetch("/api/admin/checklists",{credentials:"same-origin",cache:"no-store"});
+    const result=await response.json();
+    if(!response.ok) throw new Error(result.error || "Could not load records.");
+    adminRecords=Array.isArray(result.records)?result.records:[];
+    renderAdminRecords(); status.textContent="Showing "+adminRecords.length+" record(s). The newest 500 records are loaded.";
+  } catch(error) { status.textContent=error.message || "Could not load records."; }
+}
+async function deleteAdminRecord(record) {
+  const label=[record.vehicle_number,record.driver_name,record.submission_date].filter(Boolean).join(" — ");
+  if(!confirm("Permanently delete this checklist record?\n"+label+"\n\nThis cannot be undone.")) return;
+  const status=document.getElementById("recordsStatus"); status.textContent="Deleting record…";
+  try {
+    const response=await fetch("/api/admin/checklists/"+encodeURIComponent(record.id),{method:"DELETE",credentials:"same-origin"});
+    const result=await response.json();
+    if(!response.ok) throw new Error(result.error || "Could not delete record.");
+    await loadAdminRecords();
+    status.textContent=result.message || "Record deleted.";
+    if(result.photoWarning) status.textContent += " "+result.photoWarning;
+  } catch(error) { status.textContent=error.message || "Could not delete record."; }
+}
+document.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
+document.getElementById("recordSearch").addEventListener("input",renderAdminRecords);
+document.getElementById("downloadAllRecordsButton").addEventListener("click",()=>window.location.href="/api/admin/checklists.csv");
 
 /* ==========================================
    ENGLISH / URDU LANGUAGE SWITCHER
