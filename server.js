@@ -94,6 +94,23 @@ async function supabaseRequest(pathname, options = {}) {
   });
   return response;
 }
+
+function csvCell(value) {
+  let text = value == null ? "" : Array.isArray(value) ? value.join("; ") : String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+function htmlEscape(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+const CHECKLIST_COLUMNS = ["id","created_at","company","form_type","submission_date","submission_time","vehicle_number","current_kilometers","driver_name","driver_hygiene","interior_cleanliness","exterior_cleanliness","interior_damage","exterior_damage","tyres_condition","ac_cooling","radiator_water","belts","engine_oil","clutch_condition","fuel_status","driver_comments","driver_photo_path"];
+async function fetchAdminChecklistRows(id) {
+  const filter = id ? "&id=eq." + encodeURIComponent(id) : "";
+  const response = await supabaseRequest("/rest/v1/driver_vehicle_checklists?select=" + CHECKLIST_COLUMNS.join(",") + filter + "&order=created_at.desc&limit=500", { headers: { "Accept": "application/json" } });
+  if (!response.ok) throw new Error("Could not retrieve checklist records from Supabase.");
+  return response.json();
+}
+
 async function getDriverPasswordHash() {
   const response = await supabaseRequest("/rest/v1/app_security_settings?id=eq.1&select=driver_password_hash", { headers: { "Accept": "application/json" } });
   if (!response.ok) throw new Error("Unable to check password settings in the database.");
@@ -281,6 +298,65 @@ const server = http.createServer(async (req, res) => {
       for (const [token, entry] of sessions.entries()) if (entry.role === "driver") sessions.delete(token);
       json(res, 200, { ok: true, message: "Driver password changed. Drivers must sign in again." });
       return;
+    }
+
+
+    if (pathname === "/api/admin/checklists" && req.method === "GET") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      const records = await fetchAdminChecklistRows();
+      json(res, 200, { records });
+      return;
+    }
+
+    if (pathname === "/api/admin/checklists.csv" && req.method === "GET") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      const id = url.searchParams.get("id");
+      if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
+      const records = await fetchAdminChecklistRows(id);
+      if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
+      const csv = [CHECKLIST_COLUMNS.join(","), ...records.map(record => CHECKLIST_COLUMNS.map(column => csvCell(record[column])).join(","))].join("\r\n");
+      res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rida-checklist-records' + (id ? "-" + id : "") + '.csv"', "Cache-Control": "no-store" });
+      res.end("\uFEFF" + csv);
+      return;
+    }
+
+    if (pathname.startsWith("/api/admin/checklists/") && pathname.endsWith("/print") && req.method === "GET") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      const id = decodeURIComponent(pathname.slice("/api/admin/checklists/".length, -"/print".length));
+      if (!/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
+      const records = await fetchAdminChecklistRows(id);
+      if (!records.length) { json(res, 404, { error: "Record not found." }); return; }
+      const record = records[0];
+      const labels = {
+        "Submission Date": record.submission_date, "Submission Time": record.submission_time, "Vehicle Number": record.vehicle_number,
+        "Current Kilometers": record.current_kilometers, "Driver Name": record.driver_name, "Driver Hygiene": record.driver_hygiene,
+        "Interior Cleanliness": record.interior_cleanliness, "Exterior Cleanliness": record.exterior_cleanliness,
+        "Interior Damage": record.interior_damage, "Exterior Damage": record.exterior_damage, "Tyres Condition": record.tyres_condition,
+        "AC Cooling": record.ac_cooling, "Radiator Water": record.radiator_water, "Belts": record.belts,
+        "Engine Oil": record.engine_oil, "Clutch Condition": record.clutch_condition, "Fuel Status": record.fuel_status, "Driver Comments": record.driver_comments
+      };
+      const rows = Object.entries(labels).map(([label,value]) => "<tr><th>" + htmlEscape(label) + "</th><td>" + htmlEscape(value == null ? "" : value) + "</td></tr>").join("");
+      const photo = record.driver_photo_path ? '<p><a href="/photo/' + encodeURIComponent(record.driver_photo_path) + '" target="_blank" rel="noopener">Open driver photo</a></p>' : "";
+      const page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rida Checklist — ' + htmlEscape(record.vehicle_number) + '</title><style>body{font:14px Arial,sans-serif;color:#17313b;margin:24px}h1{color:#0b4f71}table{width:100%;border-collapse:collapse}th,td{padding:9px;border:1px solid #cbd8de;text-align:left}th{width:34%;background:#edf4f6}.print{padding:10px 18px;margin-bottom:16px}@media print{.print{display:none}body{margin:8mm}}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>Rida International Travel &amp; Tourism</h1><h2>Driver &amp; Vehicle Daily Checklist</h2><table>' + rows + '</table>' + photo + '<p>Record ID: ' + htmlEscape(record.id) + '</p></body></html>';
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); res.end(page); return;
+    }
+
+    if (pathname.startsWith("/api/admin/checklists/") && req.method === "DELETE") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      if (!originAllowed(req)) { json(res, 403, { error: "Request blocked." }); return; }
+      const id = decodeURIComponent(pathname.slice("/api/admin/checklists/".length));
+      if (!/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
+      const existing = await fetchAdminChecklistRows(id);
+      if (!existing.length) { json(res, 404, { error: "Record not found." }); return; }
+      const deleteResponse = await supabaseRequest("/rest/v1/driver_vehicle_checklists?id=eq." + encodeURIComponent(id), { method: "DELETE", headers: { "Prefer": "return=minimal" } });
+      if (!deleteResponse.ok) { json(res, 500, { error: "The checklist record could not be deleted." }); return; }
+      let photoWarning = "";
+      const photoPath = existing[0].driver_photo_path;
+      if (photoPath) {
+        const photoDelete = await supabaseRequest("/storage/v1/object/driver-photos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefixes: [photoPath] }) });
+        if (!photoDelete.ok) { console.error("Driver photo cleanup failed:", photoDelete.status, await photoDelete.text()); photoWarning = "The checklist record was deleted, but its stored photo could not be removed."; }
+      }
+      json(res, 200, { ok: true, message: "Checklist record deleted.", photoWarning }); return;
     }
 
     if (pathname === "/api/checklist" && req.method === "POST") {
