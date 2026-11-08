@@ -105,9 +105,10 @@ function htmlEscape(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 }
 const CHECKLIST_COLUMNS = ["id","created_at","company","form_type","submission_date","submission_time","vehicle_number","current_kilometers","driver_name","driver_hygiene","interior_cleanliness","exterior_cleanliness","interior_damage","exterior_damage","brakes_condition","tyres_condition","ac_cooling","radiator_water","belts","engine_oil","clutch_condition","fuel_status","driver_comments","driver_photo_path"];
-async function fetchAdminChecklistRows(id) {
-  const filter = id ? "&id=eq." + encodeURIComponent(id) : "";
-  const response = await supabaseRequest("/rest/v1/driver_vehicle_checklists?select=" + CHECKLIST_COLUMNS.join(",") + filter + "&order=created_at.desc&limit=500", { headers: { "Accept": "application/json" } });
+async function fetchAdminChecklistRows(id, date) {
+  const filter = id ? "&id=eq." + encodeURIComponent(id) : (date ? "&submission_date=eq." + encodeURIComponent(date) : "");
+  const limit = date ? 5000 : 500;
+  const response = await supabaseRequest("/rest/v1/driver_vehicle_checklists?select=" + CHECKLIST_COLUMNS.join(",") + filter + "&order=created_at.desc&limit=" + limit, { headers: { "Accept": "application/json" } });
   if (!response.ok) throw new Error("Could not retrieve checklist records from Supabase.");
   return response.json();
 }
@@ -304,7 +305,9 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/admin/checklists" && req.method === "GET") {
       if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
-      const records = await fetchAdminChecklistRows();
+      const date = url.searchParams.get("date");
+      if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
+      const records = await fetchAdminChecklistRows(null, date);
       json(res, 200, { records });
       return;
     }
@@ -313,7 +316,10 @@ const server = http.createServer(async (req, res) => {
       if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
       const id = url.searchParams.get("id");
       if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
-      const records = await fetchAdminChecklistRows(id);
+      const date = url.searchParams.get("date");
+      if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
+      if (id && date) { json(res, 400, { error: "Choose an individual record or a date, not both." }); return; }
+      const records = await fetchAdminChecklistRows(id, date);
       if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Checklist");
