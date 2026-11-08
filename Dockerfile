@@ -1,5 +1,7 @@
 FROM node:22-alpine
 WORKDIR /app
+COPY package.json ./package.json
+RUN npm install --omit=dev
 COPY server.js ./server.js
 COPY index.html ./index.html
 ENV NODE_ENV=production
