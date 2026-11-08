@@ -305,6 +305,30 @@ const server = http.createServer(async (req, res) => {
     }
 
 
+    if (pathname === "/api/admin/storage-usage" && req.method === "GET") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      const usageResponse = await supabaseRequest("/rest/v1/rpc/rida_checklist_usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: "{}"
+      });
+      if (!usageResponse.ok) {
+        console.error("Storage usage check failed:", usageResponse.status, await usageResponse.text());
+        json(res, 502, { error: "Could not check Rida Checklist storage usage." }); return;
+      }
+      const usage = await usageResponse.json();
+      const dbBytes = Number(usage.database_bytes || 0);
+      const photoBytes = Number(usage.driver_photos_bytes || 0);
+      const dbLimit = 500 * 1024 * 1024;
+      const storageLimit = 1024 * 1024 * 1024;
+      json(res, 200, {
+        ...usage,
+        thresholds: { database_warning_bytes: dbLimit * 0.8, storage_warning_bytes: storageLimit * 0.8 },
+        warnings: { database: dbBytes >= dbLimit * 0.8, storage: photoBytes >= storageLimit * 0.8 }
+      });
+      return;
+    }
+
     if (pathname === "/api/admin/checklists" && req.method === "GET") {
       if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
       const date = url.searchParams.get("date");
