@@ -2,7 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const ExcelJS = require("exceljs");
+const ExcelJS = require("exceljs");\nconst sharp = require("sharp");
 
 const port = Number(process.env.PORT || 10000);
 const indexFile = path.join(__dirname, "index.html");
@@ -199,7 +199,7 @@ function formspreeBody(data) {
     current_time: data.submission_time,
     _subject: "Driver & Vehicle Checklist - Vehicle " + data.vehicle_number + " - Rida International Travel & Tourism",
     vehicle_number: data.vehicle_number,
-    driver_photo_link: data.driver_photo_short_url || "",
+    driver_photo_link: data.driver_photo_short_url || "",\n    brakes_condition: data.brakes_condition,
     driver_name: data.driver_name,
     driver_hygiene: data.driver_hygiene,
     interior_cleanliness: data.interior_cleanliness,
@@ -341,7 +341,7 @@ const server = http.createServer(async (req, res) => {
               const signed=await sign.json();const pathSigned=signed.signedURL||signed.signedUrl;
               const photoUrl=/^https?:\/\//i.test(pathSigned)?pathSigned:SUPABASE_URL+(pathSigned.startsWith("/storage/v1/")?"":"/storage/v1")+(pathSigned.startsWith("/")?pathSigned:"/"+pathSigned);
               const imgResponse=await fetch(photoUrl);
-              if(imgResponse.ok){const buffer=Buffer.from(await imgResponse.arrayBuffer());const ext=record.driver_photo_path.endsWith(".png")?"png":record.driver_photo_path.endsWith(".webp")?"jpeg":"jpeg";const imageId=workbook.addImage({buffer,extension:ext});sheet.addImage(imageId,{tl:{col:5,row:row.number-1},br:{col:6,row:row.number}});}
+              if(imgResponse.ok){const buffer=Buffer.from(await imgResponse.arrayBuffer());const isPng=record.driver_photo_path.endsWith(".png");const embedBuffer=isPng?buffer:await sharp(buffer).jpeg().toBuffer();const imageId=workbook.addImage({buffer:embedBuffer,extension:isPng?"png":"jpeg"});sheet.addImage(imageId,{tl:{col:5,row:row.number-1},br:{col:6,row:row.number}});}
             }
           }catch(err){console.error("Excel photo embed failed:",err.message);}
         }
@@ -413,7 +413,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const data = await readBody(req);
-      const required = ["vehicle_number", "current_kilometers", "driver_name", "driver_hygiene", "interior_cleanliness", "exterior_cleanliness", "interior_damage", "exterior_damage", "tyres_condition", "ac_cooling", "radiator_water", "engine_oil", "clutch_condition", "fuel_status", "submission_date", "submission_time"];
+      const required = ["vehicle_number", "current_kilometers", "driver_name", "driver_hygiene", "interior_cleanliness", "exterior_cleanliness", "interior_damage", "exterior_damage", "brakes_condition", "tyres_condition", "ac_cooling", "radiator_water", "engine_oil", "clutch_condition", "fuel_status", "submission_date", "submission_time"];
       if (required.some(key => typeof data[key] !== "string" || !data[key].trim()) || !Array.isArray(data.belts) || data.belts.length === 0) {
         json(res, 400, { error: "Please complete all required checklist fields and check at least one belt item." });
         return;
