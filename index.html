@@ -1254,7 +1254,10 @@ async function loadAdminRecords() {
 }
 async function deleteAdminRecord(record) {
   const label=[record.vehicle_number,record.driver_name,record.submission_date].filter(Boolean).join(" — ");
-  if(!confirm("Permanently delete this checklist record?\n"+label+"\n\nThis cannot be undone.")) return;
+  if(!confirm("Permanently delete this checklist record?
+"+label+"
+
+This cannot be undone.")) return;
   const status=document.getElementById("recordsStatus"); status.textContent="Deleting record…";
   try {
     const response=await fetch("/api/admin/checklists/"+encodeURIComponent(record.id),{method:"DELETE",credentials:"same-origin"});
@@ -1265,7 +1268,16 @@ async function deleteAdminRecord(record) {
     if(result.photoWarning) status.textContent += " "+result.photoWarning;
   } catch(error) { status.textContent=error.message || "Could not delete record."; }
 }
-document.getElementById("filterDateRecordsButton").addEventListener("click",async()=>{\n  const date=document.getElementById("recordDateFilter").value;\n  const status=document.getElementById("recordsStatus");\n  if(!date){status.textContent="Please choose a date first.";return;}\n  status.textContent="Loading all drivers for "+date+"…";\n  try{const response=await fetch("/api/admin/checklists?date="+encodeURIComponent(date),{credentials:"same-origin",cache:"no-store"});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not load that date.");adminRecords=Array.isArray(result.records)?result.records:[];renderAdminRecords();status.textContent="Showing "+adminRecords.length+" checklist(s) for "+date+" (all drivers).";}\n  catch(error){status.textContent=error.message||"Could not load date records.";}\n});\ndocument.getElementById("downloadDayRecordsButton").addEventListener("click",()=>{const date=document.getElementById("recordDateFilter").value;if(!date){document.getElementById("recordsStatus").textContent="Please choose a date first.";return;}window.location.href="/api/admin/checklists.xlsx?date="+encodeURIComponent(date);});\ndocument.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
+document.getElementById("filterDateRecordsButton").addEventListener("click",async()=>{
+  const date=document.getElementById("recordDateFilter").value;
+  const status=document.getElementById("recordsStatus");
+  if(!date){status.textContent="Please choose a date first.";return;}
+  status.textContent="Loading all drivers for "+date+"…";
+  try{const response=await fetch("/api/admin/checklists?date="+encodeURIComponent(date),{credentials:"same-origin",cache:"no-store"});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not load that date.");adminRecords=Array.isArray(result.records)?result.records:[];renderAdminRecords();status.textContent="Showing "+adminRecords.length+" checklist(s) for "+date+" (all drivers).";}
+  catch(error){status.textContent=error.message||"Could not load date records.";}
+});
+document.getElementById("downloadDayRecordsButton").addEventListener("click",()=>{const date=document.getElementById("recordDateFilter").value;if(!date){document.getElementById("recordsStatus").textContent="Please choose a date first.";return;}window.location.href="/api/admin/checklists.xlsx?date="+encodeURIComponent(date);});
+document.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
 document.getElementById("recordSearch").addEventListener("input",renderAdminRecords);
 document.getElementById("downloadAllRecordsButton").addEventListener("click",()=>window.location.href="/api/admin/checklists.xlsx");
 
