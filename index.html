@@ -388,8 +388,8 @@ Driver & Vehicle Daily Checklist
   <p>Search, download or delete submitted records. Only the administrator can access these controls.</p>
   <div class="record-toolbar">
     <input id="recordSearch" type="search" placeholder="Search vehicle number, driver or date" aria-label="Search checklist records">
-    <button type="button" id="refreshRecordsButton">Refresh Records</button>
-    <button type="button" id="downloadAllRecordsButton">Download All Excel (with Photos)</button>
+    <input id="recordDateFilter" type="date" aria-label="Filter records by exact date" title="Choose a date to show all drivers for that day"><button type="button" id="filterDateRecordsButton">Show Day</button><button type="button" id="refreshRecordsButton">Refresh Records</button>
+    <button type="button" id="downloadDayRecordsButton">Download Selected Day Excel</button><button type="button" id="downloadAllRecordsButton">Download All Excel (with Photos)</button>
   </div>
   <div id="recordsStatus" class="admin-status" role="status">Loading records…</div>
   <div class="records-table-wrap"><table class="records-table">
@@ -1265,7 +1265,7 @@ async function deleteAdminRecord(record) {
     if(result.photoWarning) status.textContent += " "+result.photoWarning;
   } catch(error) { status.textContent=error.message || "Could not delete record."; }
 }
-document.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
+document.getElementById("filterDateRecordsButton").addEventListener("click",async()=>{\n  const date=document.getElementById("recordDateFilter").value;\n  const status=document.getElementById("recordsStatus");\n  if(!date){status.textContent="Please choose a date first.";return;}\n  status.textContent="Loading all drivers for "+date+"…";\n  try{const response=await fetch("/api/admin/checklists?date="+encodeURIComponent(date),{credentials:"same-origin",cache:"no-store"});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not load that date.");adminRecords=Array.isArray(result.records)?result.records:[];renderAdminRecords();status.textContent="Showing "+adminRecords.length+" checklist(s) for "+date+" (all drivers).";}\n  catch(error){status.textContent=error.message||"Could not load date records.";}\n});\ndocument.getElementById("downloadDayRecordsButton").addEventListener("click",()=>{const date=document.getElementById("recordDateFilter").value;if(!date){document.getElementById("recordsStatus").textContent="Please choose a date first.";return;}window.location.href="/api/admin/checklists.xlsx?date="+encodeURIComponent(date);});\ndocument.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
 document.getElementById("recordSearch").addEventListener("input",renderAdminRecords);
 document.getElementById("downloadAllRecordsButton").addEventListener("click",()=>window.location.href="/api/admin/checklists.xlsx");
 
