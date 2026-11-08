@@ -1254,10 +1254,7 @@ async function loadAdminRecords() {
 }
 async function deleteAdminRecord(record) {
   const label=[record.vehicle_number,record.driver_name,record.submission_date].filter(Boolean).join(" — ");
-  if(!confirm("Permanently delete this checklist record?
-"+label+"
-
-This cannot be undone.")) return;
+  if(!confirm("Permanently delete this checklist record?\n"+label+"\n\nThis cannot be undone.")) return;
   const status=document.getElementById("recordsStatus"); status.textContent="Deleting record…";
   try {
     const response=await fetch("/api/admin/checklists/"+encodeURIComponent(record.id),{method:"DELETE",credentials:"same-origin"});
