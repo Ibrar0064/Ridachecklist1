@@ -383,6 +383,14 @@ Driver & Vehicle Daily Checklist
   <div id="adminStatus" class="admin-status" role="status"></div>
 </div>
 
+<div class="admin-panel" id="storageAdminPanel" style="display:none">
+  <h3>Administrator — Storage Space Monitor</h3>
+  <p>This monitor reports usage for the Rida Checklist project only. Your Supabase organisation's Usage page is still needed to see combined usage across all your projects.</p>
+  <div id="storageUsageStatus" class="admin-status" role="status">Checking storage usage…</div>
+  <button type="button" id="refreshStorageUsageButton">Refresh Storage Status</button>
+  <p class="records-note">Warning threshold: 80% of the Free-plan reference limits (500 MB database per project; 1 GB Storage across the organisation). No records or photos are ever deleted automatically.</p>
+</div>
+
 <div class="admin-panel" id="recordsAdminPanel" style="display:none">
   <h3>Administrator — Checklist Records</h3>
   <p>Search, download or delete submitted records. Only the administrator can access these controls.</p>
@@ -1155,7 +1163,8 @@ async function refreshAuthentication() {
       document.getElementById("signedInLabel").textContent = state.role === "admin" ? "Signed in — Administrator" : "Signed in — Driver";
       document.getElementById("adminPanel").style.display = state.role === "admin" ? "block" : "none";
       document.getElementById("recordsAdminPanel").style.display = state.role === "admin" ? "block" : "none";
-      if (state.role === "admin") loadAdminRecords();
+      document.getElementById("storageAdminPanel").style.display = state.role === "admin" ? "block" : "none";
+      if (state.role === "admin") { loadAdminRecords(); loadStorageUsage(); }
     } else {
       loginScreen.style.display = "block";
       mainApp.style.display = "none";
@@ -1213,6 +1222,45 @@ document.getElementById("changeDriverPasswordForm").addEventListener("submit", a
 
 });
 refreshAuthentication();
+
+/* ADMIN-ONLY STORAGE MONITOR */
+function formatBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (value < 1024) return value + " bytes";
+  const units = ["KB","MB","GB","TB"];
+  let size = value / 1024, unit = 0;
+  while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit++; }
+  return size.toFixed(2) + " " + units[unit];
+}
+async function loadStorageUsage() {
+  const status = document.getElementById("storageUsageStatus");
+  status.textContent = "Checking Rida Checklist usage…";
+  try {
+    const response = await fetch("/api/admin/storage-usage", {credentials:"same-origin",cache:"no-store"});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not check storage usage.");
+    const db = Number(result.database_bytes || 0);
+    const photos = Number(result.driver_photos_bytes || 0);
+    const table = Number(result.checklist_table_bytes || 0);
+    const count = Number(result.driver_photos_count || 0);
+    const dbPct = (db / (500 * 1024 * 1024) * 100);
+    const photoPct = (photos / (1024 * 1024 * 1024) * 100);
+    let message = "Rida Checklist project usage — Database: " + formatBytes(db) + " / 500 MB (" + dbPct.toFixed(1) + "%). Checklist table: " + formatBytes(table) + ". Driver photos: " + formatBytes(photos) + " / 1 GB organisation reference (" + photoPct.toFixed(1) + "%), " + count + " photo(s).";
+    if (result.warnings && (result.warnings.database || result.warnings.storage)) {
+      message += " WARNING: Rida Checklist has reached the 80% warning threshold. Please review usage before accepting more uploads.";
+      status.style.color = "#b42318";
+    } else {
+      message += " No Rida Checklist project warning threshold reached.";
+      status.style.color = "#087443";
+    }
+    message += " This is not the combined usage of your other Supabase projects. Check the Supabase Organisation → Usage page for the true organisation-wide total. No automatic deletion is enabled.";
+    status.textContent = message + " Last checked: " + new Date(result.checked_at || Date.now()).toLocaleString();
+  } catch (error) {
+    status.style.color = "#b42318";
+    status.textContent = error.message || "Could not check storage usage.";
+  }
+}
+document.getElementById("refreshStorageUsageButton").addEventListener("click", loadStorageUsage);
 
 /* ADMIN-ONLY RECORD MANAGEMENT */
 let adminRecords = [];
