@@ -389,14 +389,14 @@ Driver & Vehicle Daily Checklist
   <div class="record-toolbar">
     <input id="recordSearch" type="search" placeholder="Search vehicle number, driver or date" aria-label="Search checklist records">
     <button type="button" id="refreshRecordsButton">Refresh Records</button>
-    <button type="button" id="downloadAllRecordsButton">Download All Excel (CSV)</button>
+    <button type="button" id="downloadAllRecordsButton">Download All Excel (with Photos)</button>
   </div>
   <div id="recordsStatus" class="admin-status" role="status">Loading records…</div>
   <div class="records-table-wrap"><table class="records-table">
     <thead><tr><th>Date / Time</th><th>Vehicle</th><th>Driver</th><th>Kilometers</th><th>Actions</th></tr></thead>
     <tbody id="recordsTableBody"><tr><td colspan="5">Loading records…</td></tr></tbody>
   </table></div>
-  <p class="records-note">PDF: opens a print-ready record; choose “Save as PDF” in your browser’s print menu. Excel: downloads a CSV file that opens in Excel.</p>
+  <p class="records-note">PDF: print-ready checklist with driver photo embedded (choose Save as PDF). Excel: .xlsx workbook with driver photos embedded.</p>
 </div>
 
 
@@ -1235,7 +1235,7 @@ function renderAdminRecords() {
       const cell=document.createElement("td"); cell.textContent=value; row.appendChild(cell);
     });
     const actions=document.createElement("td");
-    const csv=document.createElement("button"); csv.type="button"; csv.textContent="Excel"; csv.addEventListener("click",()=>window.location.href="/api/admin/checklists.csv?id="+encodeURIComponent(record.id));
+    const csv=document.createElement("button"); csv.type="button"; csv.textContent="Excel"; csv.addEventListener("click",()=>window.location.href="/api/admin/checklists.xlsx?id="+encodeURIComponent(record.id));
     if (record.driver_photo_path) { const photo=document.createElement("button"); photo.type="button"; photo.textContent="View Photo"; photo.addEventListener("click",()=>window.open("/photo/"+encodeURIComponent(record.driver_photo_path),"_blank","noopener")); actions.append(photo); }
     const pdf=document.createElement("button"); pdf.type="button"; pdf.textContent="PDF / Print"; pdf.addEventListener("click",()=>window.open("/api/admin/checklists/"+encodeURIComponent(record.id)+"/print","_blank","noopener"));
     const del=document.createElement("button"); del.type="button"; del.textContent="Delete"; del.className="delete-record"; del.addEventListener("click",()=>deleteAdminRecord(record));
@@ -1267,7 +1267,7 @@ async function deleteAdminRecord(record) {
 }
 document.getElementById("refreshRecordsButton").addEventListener("click",loadAdminRecords);
 document.getElementById("recordSearch").addEventListener("input",renderAdminRecords);
-document.getElementById("downloadAllRecordsButton").addEventListener("click",()=>window.location.href="/api/admin/checklists.csv");
+document.getElementById("downloadAllRecordsButton").addEventListener("click",()=>window.location.href="/api/admin/checklists.xlsx");
 
 /* ==========================================
    ENGLISH / URDU LANGUAGE SWITCHER
