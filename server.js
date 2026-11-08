@@ -2,7 +2,8 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const ExcelJS = require("exceljs");\nconst sharp = require("sharp");
+const ExcelJS = require("exceljs");
+const sharp = require("sharp");
 
 const port = Number(process.env.PORT || 10000);
 const indexFile = path.join(__dirname, "index.html");
@@ -200,7 +201,8 @@ function formspreeBody(data) {
     current_time: data.submission_time,
     _subject: "Driver & Vehicle Checklist - Vehicle " + data.vehicle_number + " - Rida International Travel & Tourism",
     vehicle_number: data.vehicle_number,
-    driver_photo_link: data.driver_photo_short_url || "",\n    brakes_condition: data.brakes_condition,
+    driver_photo_link: data.driver_photo_short_url || "",
+    brakes_condition: data.brakes_condition,
     driver_name: data.driver_name,
     driver_hygiene: data.driver_hygiene,
     interior_cleanliness: data.interior_cleanliness,
@@ -364,7 +366,8 @@ const server = http.createServer(async (req, res) => {
       if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
       const records = await fetchAdminChecklistRows(id);
       if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
-      const csv = [CHECKLIST_COLUMNS.join(","), ...records.map(record => CHECKLIST_COLUMNS.map(column => csvCell(record[column])).join(","))].join("\r\n");
+      const csv = [CHECKLIST_COLUMNS.join(","), ...records.map(record => CHECKLIST_COLUMNS.map(column => csvCell(record[column])).join(","))].join("\r
+");
       res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rida-checklist-records' + (id ? "-" + id : "") + '.csv"', "Cache-Control": "no-store" });
       res.end("\uFEFF" + csv);
       return;
