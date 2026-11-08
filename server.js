@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const ExcelJS = require("exceljs");
 
 const port = Number(process.env.PORT || 10000);
 const indexFile = path.join(__dirname, "index.html");
@@ -103,7 +104,7 @@ function csvCell(value) {
 function htmlEscape(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 }
-const CHECKLIST_COLUMNS = ["id","created_at","company","form_type","submission_date","submission_time","vehicle_number","current_kilometers","driver_name","driver_hygiene","interior_cleanliness","exterior_cleanliness","interior_damage","exterior_damage","tyres_condition","ac_cooling","radiator_water","belts","engine_oil","clutch_condition","fuel_status","driver_comments","driver_photo_path"];
+const CHECKLIST_COLUMNS = ["id","created_at","company","form_type","submission_date","submission_time","vehicle_number","current_kilometers","driver_name","driver_hygiene","interior_cleanliness","exterior_cleanliness","interior_damage","exterior_damage","brakes_condition","tyres_condition","ac_cooling","radiator_water","belts","engine_oil","clutch_condition","fuel_status","driver_comments","driver_photo_path"];
 async function fetchAdminChecklistRows(id) {
   const filter = id ? "&id=eq." + encodeURIComponent(id) : "";
   const response = await supabaseRequest("/rest/v1/driver_vehicle_checklists?select=" + CHECKLIST_COLUMNS.join(",") + filter + "&order=created_at.desc&limit=500", { headers: { "Accept": "application/json" } });
@@ -308,6 +309,49 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (pathname === "/api/admin/checklists.xlsx" && req.method === "GET") {
+      if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
+      const id = url.searchParams.get("id");
+      if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
+      const records = await fetchAdminChecklistRows(id);
+      if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Checklist");
+      sheet.columns = [
+        {header:"Date",key:"submission_date",width:14},{header:"Time",key:"submission_time",width:14},
+        {header:"Vehicle Number",key:"vehicle_number",width:18},{header:"Kilometers",key:"current_kilometers",width:14},
+        {header:"Driver Name",key:"driver_name",width:22},{header:"Driver Photo",key:"photo",width:18},
+        {header:"Driver Hygiene",key:"driver_hygiene",width:16},{header:"Interior Cleanliness",key:"interior_cleanliness",width:20},
+        {header:"Exterior Cleanliness",key:"exterior_cleanliness",width:20},{header:"Interior Damage",key:"interior_damage",width:16},
+        {header:"Exterior Damage",key:"exterior_damage",width:16},{header:"Brakes Condition",key:"brakes_condition",width:16},
+        {header:"Tyres Condition",key:"tyres_condition",width:18},{header:"AC Cooling",key:"ac_cooling",width:16},
+        {header:"Radiator Water",key:"radiator_water",width:18},{header:"Belts",key:"belts",width:28},
+        {header:"Engine Oil",key:"engine_oil",width:16},{header:"Clutch",key:"clutch_condition",width:18},
+        {header:"Fuel",key:"fuel_status",width:28},{header:"Comments",key:"driver_comments",width:40}
+      ];
+      sheet.getRow(1).font={bold:true,color:{argb:"FFFFFFFF"}};
+      sheet.getRow(1).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B4F71"}};
+      for (const record of records) {
+        const row=sheet.addRow({...record,belts:Array.isArray(record.belts)?record.belts.join(", "):record.belts,photo:""});
+        row.height=82;
+        if(record.driver_photo_path){
+          try{
+            const sign=await supabaseRequest("/storage/v1/object/sign/driver-photos/"+record.driver_photo_path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({expiresIn:300})});
+            if(sign.ok){
+              const signed=await sign.json();const pathSigned=signed.signedURL||signed.signedUrl;
+              const photoUrl=/^https?:\/\//i.test(pathSigned)?pathSigned:SUPABASE_URL+(pathSigned.startsWith("/storage/v1/")?"":"/storage/v1")+(pathSigned.startsWith("/")?pathSigned:"/"+pathSigned);
+              const imgResponse=await fetch(photoUrl);
+              if(imgResponse.ok){const buffer=Buffer.from(await imgResponse.arrayBuffer());const ext=record.driver_photo_path.endsWith(".png")?"png":record.driver_photo_path.endsWith(".webp")?"jpeg":"jpeg";const imageId=workbook.addImage({buffer,extension:ext});sheet.addImage(imageId,{tl:{col:5,row:row.number-1},br:{col:6,row:row.number}});}
+            }
+          }catch(err){console.error("Excel photo embed failed:",err.message);}
+        }
+      }
+      sheet.views=[{state:"frozen",ySplit:1}];
+      const output=await workbook.xlsx.writeBuffer();
+      res.writeHead(200,{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":'attachment; filename="rida-checklist'+(id?"-"+id:"s")+'.xlsx"',"Cache-Control":"no-store"});
+      res.end(Buffer.from(output));return;
+    }
+
     if (pathname === "/api/admin/checklists.csv" && req.method === "GET") {
       if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
       const id = url.searchParams.get("id");
@@ -331,13 +375,13 @@ const server = http.createServer(async (req, res) => {
         "Submission Date": record.submission_date, "Submission Time": record.submission_time, "Vehicle Number": record.vehicle_number,
         "Current Kilometers": record.current_kilometers, "Driver Name": record.driver_name, "Driver Hygiene": record.driver_hygiene,
         "Interior Cleanliness": record.interior_cleanliness, "Exterior Cleanliness": record.exterior_cleanliness,
-        "Interior Damage": record.interior_damage, "Exterior Damage": record.exterior_damage, "Tyres Condition": record.tyres_condition,
+        "Interior Damage": record.interior_damage, "Exterior Damage": record.exterior_damage, "Brakes Condition": record.brakes_condition, "Tyres Condition": record.tyres_condition,
         "AC Cooling": record.ac_cooling, "Radiator Water": record.radiator_water, "Belts": record.belts,
         "Engine Oil": record.engine_oil, "Clutch Condition": record.clutch_condition, "Fuel Status": record.fuel_status, "Driver Comments": record.driver_comments
       };
       const rows = Object.entries(labels).map(([label,value]) => "<tr><th>" + htmlEscape(label) + "</th><td>" + htmlEscape(value == null ? "" : value) + "</td></tr>").join("");
-      const photo = record.driver_photo_path ? '<section class="driver-photo"><h3>Driver Photo</h3><img src="/photo/' + encodeURIComponent(record.driver_photo_path) + '" alt="Driver photo" style="display:block;max-width:240px;max-height:300px;object-fit:contain;border:1px solid #cbd8de;border-radius:8px;margin:8px 0"><p><a href="/photo/' + encodeURIComponent(record.driver_photo_path) + '" target="_blank" rel="noopener">Open full-size photo</a></p></section>' : "<p>No driver photo attached to this record.</p>";
-      const page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rida Checklist — ' + htmlEscape(record.vehicle_number) + '</title><style>body{font:14px Arial,sans-serif;color:#17313b;margin:24px}h1{color:#0b4f71}table{width:100%;border-collapse:collapse}th,td{padding:9px;border:1px solid #cbd8de;text-align:left}th{width:34%;background:#edf4f6}.print{padding:10px 18px;margin-bottom:16px}@media print{.print{display:none}body{margin:8mm}}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>Rida International Travel &amp; Tourism</h1><h2>Driver &amp; Vehicle Daily Checklist</h2><table>' + rows + '</table>' + photo + '<p>Record ID: ' + htmlEscape(record.id) + '</p></body></html>';
+      const photo = record.driver_photo_path ? '<section class="driver-photo"><h3>Driver Photo</h3><img id="driverPhoto" src="/photo/' + encodeURIComponent(record.driver_photo_path) + '" alt="Driver photo" style="display:block;max-width:240px;max-height:300px;object-fit:contain;border:1px solid #cbd8de;border-radius:8px;margin:8px 0"><p><a href="/photo/' + encodeURIComponent(record.driver_photo_path) + '" target="_blank" rel="noopener">Open full-size photo</a></p></section>' : "<p>No driver photo attached to this record.</p>";
+      const page = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rida Checklist — ' + htmlEscape(record.vehicle_number) + '</title><style>body{font:14px Arial,sans-serif;color:#17313b;margin:24px}h1{color:#0b4f71}table{width:100%;border-collapse:collapse}th,td{padding:9px;border:1px solid #cbd8de;text-align:left}th{width:34%;background:#edf4f6}.print{padding:10px 18px;margin-bottom:16px}@media print{.print{display:none}body{margin:8mm}}</style></head><body><button class="print" onclick="printWhenPhotoReady()">Print / Save as PDF</button><h1>Rida International Travel &amp; Tourism</h1><h2>Driver &amp; Vehicle Daily Checklist</h2><table>' + rows + '</table>' + photo + '<p>Record ID: ' + htmlEscape(record.id) + '</p><script>function printWhenPhotoReady(){const p=document.getElementById("driverPhoto");if(p&&!p.complete){p.onload=()=>window.print();p.onerror=()=>window.print();return;}window.print();}</script></body></html>';
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); res.end(page); return;
     }
 
