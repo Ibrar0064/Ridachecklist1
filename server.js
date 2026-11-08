@@ -366,8 +366,7 @@ const server = http.createServer(async (req, res) => {
       if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
       const records = await fetchAdminChecklistRows(id);
       if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
-      const csv = [CHECKLIST_COLUMNS.join(","), ...records.map(record => CHECKLIST_COLUMNS.map(column => csvCell(record[column])).join(","))].join("\r
-");
+      const csv = [CHECKLIST_COLUMNS.join(","), ...records.map(record => CHECKLIST_COLUMNS.map(column => csvCell(record[column])).join(","))].join("\\r\\n");
       res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="rida-checklist-records' + (id ? "-" + id : "") + '.csv"', "Cache-Control": "no-store" });
       res.end("\uFEFF" + csv);
       return;
