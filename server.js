@@ -306,7 +306,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/admin/checklists" && req.method === "GET") {
       if (!session || session.role !== "admin") { json(res, 401, { error: "Administrator login required." }); return; }
       const date = url.searchParams.get("date");
-      if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
       const records = await fetchAdminChecklistRows(null, date);
       json(res, 200, { records });
       return;
@@ -317,7 +317,7 @@ const server = http.createServer(async (req, res) => {
       const id = url.searchParams.get("id");
       if (id && !/^[0-9a-f-]{36}$/i.test(id)) { json(res, 400, { error: "Invalid record ID." }); return; }
       const date = url.searchParams.get("date");
-      if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { json(res, 400, { error: "Date must be YYYY-MM-DD." }); return; }
       if (id && date) { json(res, 400, { error: "Choose an individual record or a date, not both." }); return; }
       const records = await fetchAdminChecklistRows(id, date);
       if (id && !records.length) { json(res, 404, { error: "Record not found." }); return; }
