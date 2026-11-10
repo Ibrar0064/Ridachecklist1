@@ -446,8 +446,15 @@ const server = http.createServer(async (req, res) => {
       }
       const data = await readBody(req);
       const required = ["vehicle_number", "current_kilometers", "driver_name", "driver_hygiene", "interior_cleanliness", "exterior_cleanliness", "interior_damage", "exterior_damage", "brakes_condition", "tyres_condition", "ac_cooling", "radiator_water", "engine_oil", "clutch_condition", "fuel_status", "submission_date", "submission_time"];
-      if (required.some(key => typeof data[key] !== "string" || !data[key].trim()) || !Array.isArray(data.belts) || data.belts.length === 0) {
-        json(res, 400, { error: "Please complete all required checklist fields and check at least one belt item." });
+      const requiredBelts = ["AC Belt Checked", "Fan Belt Checked", "Other Belts Checked"];
+      const allBeltsChecked = Array.isArray(data.belts) &&
+        requiredBelts.every(item => data.belts.includes(item));
+      if (required.some(key => typeof data[key] !== "string" || !data[key].trim())) {
+        json(res, 400, { error: "Please complete all required checklist fields." });
+        return;
+      }
+      if (!allBeltsChecked) {
+        json(res, 400, { error: "Please check all three vehicle belt items: AC Belt, Fan Belt, and Other Belts." });
         return;
       }
       if (typeof data.driver_photo_data !== "string" || !data.driver_photo_data) {
