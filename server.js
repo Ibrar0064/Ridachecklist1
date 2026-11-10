@@ -469,6 +469,7 @@ const server = http.createServer(async (req, res) => {
         vehicle_number: data.vehicle_number.trim().slice(0, 100),
         current_kilometers: data.current_kilometers.trim().slice(0, 30),
         driver_name: data.driver_name.trim().slice(0, 150),
+        brakes_condition: data.brakes_condition,
         driver_hygiene: data.driver_hygiene,
         interior_cleanliness: data.interior_cleanliness,
         exterior_cleanliness: data.exterior_cleanliness,
@@ -489,31 +490,44 @@ const server = http.createServer(async (req, res) => {
       const proto = (req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
       const emailPayload = { ...payload, driver_photo_short_url: proto + "://" + req.headers.host + "/photo/" + encodeURIComponent(uploadedPhoto.path) };
 
-      const [dbResult, emailResult] = await Promise.allSettled([
-        supabaseRequest("/rest/v1/driver_vehicle_checklists", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
-          body: JSON.stringify(payload)
-        }),
-        fetch(FORMSPREE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
-          body: formspreeBody(emailPayload)
-        })
-      ]);
-      const saved = dbResult.status === "fulfilled" && dbResult.value.ok;
-      const emailed = emailResult.status === "fulfilled" && emailResult.value.ok;
-      if (!saved) {
-        json(res, 502, { error: emailed ? "The email was sent, but database saving failed. Please contact the administrator before resubmitting." : "Submission failed. Please check your connection and try again." });
+      // Confirm the database row, including its private driver photo path, before sending email.
+      const dbResponse = await supabaseRequest("/rest/v1/driver_vehicle_checklists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Prefer": "return=representation" },
+        body: JSON.stringify(payload)
+      });
+      if (!dbResponse.ok) {
+        const dbError = await dbResponse.text();
+        console.error("Checklist database insert failed:", dbResponse.status, dbError);
+        const cleanup = await supabaseRequest("/storage/v1/object/driver-photos", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prefixes: [uploadedPhoto.path] })
+        });
+        if (!cleanup.ok) console.error("Orphan photo cleanup failed:", cleanup.status, await cleanup.text());
+        json(res, 502, { error: "The checklist could not be saved to the database. No successful submission was recorded. Please contact the administrator." });
         return;
       }
+      const insertedRows = await dbResponse.json();
+      if (!Array.isArray(insertedRows) || !insertedRows[0] || insertedRows[0].driver_photo_path !== uploadedPhoto.path) {
+        console.error("Checklist insert did not confirm the saved photo path.");
+        json(res, 502, { error: "The database did not confirm the driver photo. Please contact the administrator before resubmitting." });
+        return;
+      }
+      const emailResponse = await fetch(FORMSPREE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+        body: formspreeBody(emailPayload)
+      });
+      const emailed = emailResponse.ok;
+      if (!emailed) console.error("Checklist email delivery failed:", emailResponse.status, await emailResponse.text());
       json(res, 200, { ok: true, emailDelivered: emailed });
       return;
     }
 
     if (req.method === "GET" && pathname.startsWith("/photo/")) {
       const objectPath = decodeURIComponent(pathname.slice("/photo/".length));
-      if (!/^\\d+-[0-9a-f-]{36}\\.(?:jpg|png|webp)$/i.test(objectPath)) {
+      if (!/^\d+-[0-9a-f-]{36}\.(?:jpg|png|webp)$/i.test(objectPath)) {
         res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
         res.end("Photo not found.");
         return;
