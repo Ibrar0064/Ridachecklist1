@@ -1578,17 +1578,18 @@ document
         );
 
 
-    const atLeastOneBelt =
-        [...belts].some(
+    const allBeltsChecked =
+        belts.length === 3 &&
+        [...belts].every(
             checkbox => checkbox.checked
         );
 
 
-    if (!atLeastOneBelt) {
+    if (!allBeltsChecked) {
 
         alert(currentLanguage === "ur"
-            ? "براہ کرم گاڑی کی کم از کم ایک بیلٹ چیک کریں۔"
-            : "Please check at least one vehicle belt item.");
+            ? "براہ کرم تینوں گاڑی کی بیلٹس چیک کریں۔"
+            : "Please check all three vehicle belt items: AC Belt, Fan Belt, and Other Belts.");
 
         return;
 
