@@ -318,6 +318,7 @@ input[type="text"], textarea { direction: ltr; text-align: left; }
 .records-table .delete-record{border-color:var(--danger);color:var(--danger)}
 .records-note{font-size:12px;color:#657780}
 @media(max-width:650px){.record-toolbar{grid-template-columns:1fr 1fr}.record-toolbar input{grid-column:1/-1}.record-toolbar button{width:100%}}
+.field.missing-field{border:2px solid #c62828!important;border-radius:10px;padding:12px;background:#fff5f5!important;scroll-margin-top:20px}.field-error{display:block;color:#b42318;font-size:14px;font-weight:700;margin-top:8px}.field.missing-field .question{color:#b42318!important}
 </style>
 </head>
 
@@ -1566,6 +1567,75 @@ document
 
     e.preventDefault();
 
+    /* Clear old highlights and identify the exact missing required field. */
+    this.querySelectorAll(".missing-field").forEach(field => {
+        field.classList.remove("missing-field");
+        const oldError = field.querySelector(".field-error");
+        if (oldError) oldError.remove();
+    });
+
+    const requiredFields = [
+        ["vehicle_number", "Vehicle Number"],
+        ["current_kilometers", "Current Kilometers"],
+        ["driver_name", "Driver Name"],
+        ["driver_hygiene", "Driver Hygiene"],
+        ["interior_cleanliness", "Vehicle Interior Cleanliness"],
+        ["exterior_cleanliness", "Vehicle Exterior Cleanliness"],
+        ["interior_damage", "Interior Damage"],
+        ["exterior_damage", "Exterior Damage"],
+        ["brakes_condition", "Brakes Condition"],
+        ["tyres_condition", "Tyres Condition"],
+        ["ac_cooling", "AC Cooling"],
+        ["radiator_water", "Radiator Water"],
+        ["engine_oil", "Engine Oil"],
+        ["clutch_condition", "Clutch Condition"],
+        ["fuel_status", "Fuel Level"]
+    ];
+
+    let firstMissingField = null;
+    for (const [name, label] of requiredFields) {
+        const controls = [...this.querySelectorAll('[name="' + name + '"]')];
+        const isRadioGroup = controls.some(control => control.type === "radio");
+        const hasValue = isRadioGroup
+            ? controls.some(control => control.checked)
+            : controls.some(control => String(control.value || "").trim() !== "");
+        if (!hasValue) {
+            const field = controls[0] && controls[0].closest(".field");
+            if (field) {
+                field.classList.add("missing-field");
+                const error = document.createElement("div");
+                error.className = "field-error";
+                error.textContent = currentLanguage === "ur"
+                    ? "یہ خانہ لازمی ہے — براہ کرم جواب منتخب کریں۔"
+                    : "Missing required field: " + label + ". Please complete it.";
+                field.appendChild(error);
+                if (!firstMissingField) firstMissingField = field;
+            }
+        }
+    }
+
+    const photoInputForValidation = this.querySelector('input[name="driver_photo"]');
+    if (!photoInputForValidation || !photoInputForValidation.files || !photoInputForValidation.files.length) {
+        const photoField = photoInputForValidation && photoInputForValidation.closest(".field");
+        if (photoField) {
+            photoField.classList.add("missing-field");
+            const error = document.createElement("div");
+            error.className = "field-error";
+            error.textContent = currentLanguage === "ur"
+                ? "ڈرائیور کی تصویر لازمی ہے۔"
+                : "Missing required field: Driver Photo. Please select a photo.";
+            photoField.appendChild(error);
+            if (!firstMissingField) firstMissingField = photoField;
+        }
+    }
+
+    if (firstMissingField) {
+        firstMissingField.scrollIntoView({ behavior: "smooth", block: "center" });
+        const firstControl = firstMissingField.querySelector("input, select, textarea");
+        if (firstControl) firstControl.focus({ preventScroll: true });
+        return;
+    }
+
     /* Ignore repeat taps while a submission is being processed. */
     const button = document.getElementById("submitBtn");
     if (button.disabled) return;
@@ -1587,10 +1657,17 @@ document
 
     if (!allBeltsChecked) {
 
-        alert(currentLanguage === "ur"
-            ? "براہ کرم تینوں گاڑی کی بیلٹس چیک کریں۔"
-            : "Please check all three vehicle belt items: AC Belt, Fan Belt, and Other Belts.");
-
+        const beltField = belts[0] && belts[0].closest(".field");
+        if (beltField) {
+            beltField.classList.add("missing-field");
+            const error = document.createElement("div");
+            error.className = "field-error";
+            error.textContent = currentLanguage === "ur"
+                ? "تینوں بیلٹس لازمی چیک کریں۔"
+                : "Please check all three: AC Belt, Fan Belt, and Other Belts.";
+            beltField.appendChild(error);
+            beltField.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         return;
 
     }
